@@ -6,29 +6,35 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Trash2, Plus, Save, Calendar } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Calendar as UICalendar } from "@/components/ui/calendar"
 
 interface TimeSheetRow {
   id: string
   name: string
   pinId: string
+  pinNumber: string
   hours: string
   jobType: string
   country: string
+  note: string
 }
 
 export function TimeSheetsTab() {
   const [rows, setRows] = useState<TimeSheetRow[]>([
-    { id: "1", name: "staff_user", pinId: "PIN001", hours: "2.5", jobType: "Label", country: "Brazil" },
-    { id: "2", name: "staff_user", pinId: "PIN002", hours: "1.8", jobType: "DF check", country: "Brazil" },
-    { id: "3", name: "staff_user", pinId: "PIN003", hours: "3.2", jobType: "Document preparation", country: "Vietnam" },
+    { id: "1", name: "staff_user", pinId: "PIN001", pinNumber: "1", hours: "2.5", jobType: "Label", country: "Brazil", note: "Hoàn thành đúng hạn" },
+    { id: "2", name: "staff_user", pinId: "PIN002", pinNumber: "2", hours: "1.8", jobType: "DF check", country: "Brazil", note: "" },
+    { id: "3", name: "staff_user", pinId: "PIN003", pinNumber: "3", hours: "3.2", jobType: "Document preparation", country: "Vietnam", note: "Cần kiểm tra lại" },
   ])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isDateDialogOpen, setIsDateDialogOpen] = useState(false)
 
   const addRow = () => {
-    setRows([...rows, { id: Date.now().toString(), name: "", pinId: "", hours: "", jobType: "", country: "" }])
+    setRows([...rows, { id: Date.now().toString(), name: "", pinId: "", pinNumber: "", hours: "", jobType: "", country: "", note: "" }])
   }
 
   const updateRow = (id: string, field: keyof TimeSheetRow, value: string) => {
@@ -42,7 +48,7 @@ export function TimeSheetsTab() {
   }
 
   const submit = () => {
-    console.log("Submit time sheets:", rows, selectedDate)
+    console.log("Submit time sheets:", rows, selectedDate.toISOString().split("T")[0])
     setIsSubmitted(true)
     alert("Time sheets submitted successfully! Data is now locked.")
   }
@@ -52,7 +58,7 @@ export function TimeSheetsTab() {
   }
 
   const handleConfirmEdit = () => {
-    console.log("Edit data for date:", selectedDate)
+    console.log("Edit data for date:", selectedDate.toISOString().split("T")[0])
     setShowEditModal(false)
     alert(`Editing data for ${new Date(selectedDate).toLocaleDateString("vi-VN")}`)
   }
@@ -69,19 +75,25 @@ export function TimeSheetsTab() {
               </h3>
               {isSubmitted && <p className="text-sm text-green-600 mt-2 font-medium">✓ Dữ liệu đã được khóa</p>}
             </div>
-            {isSubmitted && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleEditClick}
-                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                <Calendar className="w-4 h-4" />
-                Chỉnh sửa
-              </motion.button>
-            )}
+            <div className="flex items-center gap-2">
+              <Button variant="default" size="sm" onClick={() => setIsDateDialogOpen(true)} className="bg-green-600 hover:bg-green-700 text-white">
+                <Calendar className="w-4 h-4 mr-2" />
+                Chọn ngày
+              </Button>
+              {isSubmitted && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleEditClick}
+                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Chỉnh sửa
+                </motion.button>
+              )}
+            </div>
           </div>
         </Card>
 
@@ -94,9 +106,11 @@ export function TimeSheetsTab() {
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 w-12">STT</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">User Name</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Pin ID</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Số pin</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Thời gian (giờ)</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Loại công việc</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Quốc gia</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Note</th>
                   <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">Hành động</th>
                 </tr>
               </thead>
@@ -122,6 +136,14 @@ export function TimeSheetsTab() {
                     </td>
                     <td className="px-4 py-3">
                       <Input
+                        value={row.pinNumber}
+                        onChange={(e) => updateRow(row.id, "pinNumber", e.target.value)}
+                        disabled={isSubmitted}
+                        className="bg-white border-slate-300 text-slate-900 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Input
                         value={row.hours}
                         onChange={(e) => updateRow(row.id, "hours", e.target.value)}
                         disabled={isSubmitted}
@@ -134,10 +156,10 @@ export function TimeSheetsTab() {
                         onValueChange={(v) => updateRow(row.id, "jobType", v)}
                         disabled={isSubmitted}
                       >
-                        <SelectTrigger className="bg-white border-slate-300 text-slate-900 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed">
+                        <SelectTrigger className="bg-white border-slate-300 text-slate-900 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed" style={{ animation: 'none', transition: 'none' }}>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="animate-none transition-none" style={{ animation: 'none', transition: 'none' }}>
                           <SelectItem value="Label">Label</SelectItem>
                           <SelectItem value="DF check">DF check</SelectItem>
                           <SelectItem value="Document preparation">Document preparation</SelectItem>
@@ -153,11 +175,20 @@ export function TimeSheetsTab() {
                         className="bg-white border-slate-300 text-slate-900 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
                       />
                     </td>
+                    <td className="px-4 py-3">
+                      <Input
+                        value={row.note}
+                        onChange={(e) => updateRow(row.id, "note", e.target.value)}
+                        placeholder="Ghi chú"
+                        disabled={isSubmitted}
+                        className="bg-white border-slate-300 text-slate-900 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      />
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <button
                         onClick={() => deleteRow(row.id)}
                         disabled={isSubmitted}
-                        className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-2 hover:bg-red-50 rounded-lg text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -207,8 +238,10 @@ export function TimeSheetsTab() {
               <div className="absolute -right-8 -top-8 w-24 h-24 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform" />
               <div className="relative z-10">
                 <p className="text-emerald-100 text-sm font-medium mb-2">Tổng số Pin</p>
-                <p className="text-4xl font-bold text-white mb-1">{rows.length}</p>
-                <p className="text-emerald-100 text-xs">Số lần chấm công</p>
+                <p className="text-4xl font-bold text-white mb-1">
+                  {rows.reduce((sum, row) => sum + Number.parseFloat(row.pinNumber || 0), 0)}
+                </p>
+                <p className="text-emerald-100 text-xs">Tổng số pin đã nhập</p>
               </div>
             </div>
 
@@ -256,8 +289,8 @@ export function TimeSheetsTab() {
             <div className="mb-6">
               <Input
                 type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
+                value={selectedDate.toISOString().split("T")[0]}
+                onChange={(e) => setSelectedDate(new Date(e.target.value))}
                 className="w-full bg-white border border-blue-300 text-slate-900 px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -278,6 +311,27 @@ export function TimeSheetsTab() {
           </motion.div>
         </div>
       )}
+      <Dialog open={isDateDialogOpen} onOpenChange={setIsDateDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Chọn ngày để xem dữ liệu timesheets</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center">
+            <UICalendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date) => {
+                if (date) {
+                  setSelectedDate(date)
+                  setIsDateDialogOpen(false)
+                  // Here, you could add logic to load data for the selected date
+                }
+              }}
+              className="rounded-md border"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

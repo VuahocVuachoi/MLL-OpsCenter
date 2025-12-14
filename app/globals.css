@@ -215,3 +215,53 @@
     @apply bg-secondary text-secondary-foreground hover:bg-secondary/90 hover:shadow-lg active:scale-95 transition-all font-semibold;
   }
 }
+
+/* Disable animations for Radix Select components */
+[data-radix-select-content] {
+  animation: none !important;
+  transition: none !important;
+}
+
+[data-radix-select-trigger] {
+  animation: none !important;
+  transition: none !important;
+}
+
+[data-radix-select-viewport] {
+  animation: none !important;
+  transition: none !important;
+}
+
+[data-radix-select-item][data-highlighted] {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Disable ripple effect on SelectTrigger */
+[data-radix-select-trigger] {
+  position: relative;
+  overflow: hidden;
+}
+
+[data-radix-select-trigger]::before,
+[data-radix-select-trigger]::after {
+  display: none !important;
+}
+
+[data-radix-select-trigger] .ripple {
+  display: none !important;
+}
+
+[data-radix-select-trigger] {
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Fix layout shift for Select dropdown */
+[data-radix-select-content] {
+  position: fixed !important;
+  z-index: 9999 !important;
+  max-height: 200px !important;
+  overflow-y: auto !important;
+}

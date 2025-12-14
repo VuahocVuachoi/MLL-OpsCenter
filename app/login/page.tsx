@@ -1,8 +1,8 @@
-"use client"
+﻿"use client"
 
 import type React from "react"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -10,38 +10,51 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Briefcase } from "lucide-react"
 
-const mockUsers = {
-  "employee@example.com": { name: "Sarah Johnson", role: "employee", team: "Engineering", accountName: "Tech Corp" },
-  "qc@example.com": { name: "Mike Chen", role: "qc", team: "Quality Control", accountName: "Tech Corp" },
-  "hr@example.com": { name: "Lisa Rodriguez", role: "hr", team: "Human Resources", accountName: "Tech Corp" },
-}
+import { supabaseBrowser } from "@/lib/supabase-browser"
 
 export default function LoginPage() {
   const router = useRouter()
+  const supabase = useMemo(() => supabaseBrowser(), [])
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
+
+  const performLogin = async () => {
+    setErrorMessage("")
+    setLoading(true)
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      setErrorMessage(error.message)
+      setLoading(false)
+      return
+    }
+
+    // Lưu thông tin user để các trang /employee dùng guard localStorage
+    const mockUser = { email, role: "employee", name: email }
+    if (typeof window !== "undefined") {
+      localStorage.setItem("user", JSON.stringify(mockUser))
+    }
+
+    // Sau khi login thành công, vào thẳng trang employee
+    router.replace("/employee")
+    setLoading(false)
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-
-    setTimeout(() => {
-      const user = mockUsers[email as keyof typeof mockUsers]
-      if (user && password.length > 0) {
-        localStorage.setItem("user", JSON.stringify(user))
-        router.push(`/${user.role}`)
-      } else {
-        alert("Invalid credentials. Try: employee@example.com, qc@example.com, or hr@example.com")
-      }
-      setLoading(false)
-    }, 500)
+    await performLogin()
   }
 
-  const quickLogin = (email: string) => {
-    const user = mockUsers[email as keyof typeof mockUsers]
-    localStorage.setItem("user", JSON.stringify(user))
-    router.push(`/${user.role}`)
+  const quickLogin = (loginEmail: string) => {
+    setEmail(loginEmail)
+    setPassword("123")
+    void performLogin()
   }
 
   return (
@@ -57,7 +70,6 @@ export default function LoginPage() {
         transition={{ duration: 0.6 }}
         className="w-full max-w-5xl grid md:grid-cols-2 gap-8 items-center relative z-10"
       >
-        {/* Left Side - Inspirational Content */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -72,7 +84,6 @@ export default function LoginPage() {
             elegant, intuitive dashboards tailored to your role.
           </p>
 
-          {/* Mini Stats */}
           <div className="space-y-4">
             <div className="flex items-start space-x-4">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center border border-blue-300 flex-shrink-0">
@@ -104,7 +115,6 @@ export default function LoginPage() {
           </div>
         </motion.div>
 
-        {/* Right Side - Login Card */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -135,7 +145,7 @@ export default function LoginPage() {
                 <label className="block text-sm font-medium text-slate-900 mb-2">Password</label>
                 <Input
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="******"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400"
@@ -148,6 +158,7 @@ export default function LoginPage() {
               >
                 {loading ? "Signing in..." : "Sign in"}
               </Button>
+              {errorMessage && <p className="text-sm text-red-600 text-center">{errorMessage}</p>}
             </form>
 
             <div className="relative mb-6">
@@ -163,18 +174,18 @@ export default function LoginPage() {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => quickLogin("employee@example.com")}
+                onClick={() => quickLogin("mll@example.com")}
                 className="w-full px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-300 rounded-lg text-sm font-medium text-blue-700 transition-colors"
               >
-                Employee
+                Employee (MLL)
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => quickLogin("qc@example.com")}
+                onClick={() => quickLogin("mlqc@example.com")}
                 className="w-full px-4 py-2 bg-purple-50 hover:bg-purple-100 border border-purple-300 rounded-lg text-sm font-medium text-purple-700 transition-colors"
               >
-                QC Manager
+                QC Manager (MLQC)
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.02 }}
@@ -186,7 +197,7 @@ export default function LoginPage() {
               </motion.button>
             </div>
 
-            <p className="text-xs text-slate-500 text-center mt-6">Demo credentials - any password works</p>
+            <p className="text-xs text-slate-500 text-center mt-6">Demo credentials - password: 123</p>
           </Card>
         </motion.div>
       </motion.div>
