@@ -35,10 +35,36 @@ export default function LoginPage() {
       return
     }
 
+    if (!data.user) {
+      setErrorMessage("Không tìm thấy tài khoản sau khi đăng nhập.")
+      setLoading(false)
+      return
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id,email,name,role,team,account_name,leave_balance")
+      .eq("id", data.user.id)
+      .single()
+
+    if (profileError || !profile) {
+      setErrorMessage("Tài khoản chưa có hồ sơ nhân viên. Vui lòng liên hệ quản trị.")
+      setLoading(false)
+      return
+    }
+
     // Lưu thông tin user để các trang /employee dùng guard localStorage
-    const mockUser = { email, role: "employee", name: email }
+    const mappedUser = {
+      id: profile.id,
+      email: profile.email || email,
+      name: profile.name || email,
+      role: profile.role,
+      team: profile.team || "",
+      accountName: profile.account_name || "",
+      leaveBalance: profile.leave_balance ?? undefined,
+    }
     if (typeof window !== "undefined") {
-      localStorage.setItem("user", JSON.stringify(mockUser))
+      localStorage.setItem("user", JSON.stringify(mappedUser))
     }
 
     // Sau khi login thành công, vào thẳng trang employee
