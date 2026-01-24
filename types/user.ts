@@ -2,7 +2,7 @@ export interface User {
   id: string
   email: string
   name: string
-  role: "employee" | "qc" | "hr"
+  role: "mll" | "mlqc" | "hr"
   team: string
   accountName: string
   leaveBalance?: number

@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import type React from "react"
 
@@ -8,6 +8,7 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import type { User } from "@/types/user"
 import { Briefcase } from "lucide-react"
 
 import { supabaseBrowser } from "@/lib/supabase-browser"
@@ -43,32 +44,92 @@ export default function LoginPage() {
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("id,email,name,role,team,account_name,leave_balance")
+      .select(
+        "id,email,name,role,team,account_name,username,leave_balance,annual_leave_total,annual_leave_remaining",
+      )
       .eq("id", data.user.id)
       .single()
 
-    if (profileError || !profile) {
-      setErrorMessage("Tài khoản chưa có hồ sơ nhân viên. Vui lòng liên hệ quản trị.")
+    const fallbackRoleMap: Record<string, User["role"]> = {
+      "ntphu@enveritas-associate.org": "mll",
+      "pnquang@enveritas-associate.org": "hr",
+      "tan@enveritas.org": "mlqc",
+    }
+    const fallbackRole = fallbackRoleMap[email]
+    const enforcedRole = fallbackRoleMap[email]
+
+    if (!profile && !fallbackRole) {
+      setErrorMessage("Tài khoản chưa có quyền truy cập.")
       setLoading(false)
       return
     }
 
-    // Lưu thông tin user để các trang /employee dùng guard localStorage
-    const mappedUser = {
-      id: profile.id,
-      email: profile.email || email,
-      name: profile.name || email,
-      role: profile.role,
-      team: profile.team || "",
-      accountName: profile.account_name || "",
-      leaveBalance: profile.leave_balance ?? undefined,
+    const mappedUser = profile
+      ? {
+          id: profile.id,
+          email: profile.email || email,
+          name: profile.name || email,
+          role: enforcedRole ?? profile.role,
+          team: profile.team || "",
+          accountName: profile.account_name || "",
+          leaveBalance: profile.leave_balance ?? undefined,
+        }
+      : {
+          id: data.user.id,
+          email,
+          name: email,
+          role: fallbackRole,
+          team: "",
+          accountName: "",
+          leaveBalance: undefined,
+        }
+
+    if (profileError && profileError.code !== "PGRST116" && !fallbackRole) {
+      setErrorMessage("Không thể tải hồ sơ nhân viên. Vui lòng thử lại.")
+      setLoading(false)
+      return
     }
-    if (typeof window !== "undefined") {
-      localStorage.setItem("user", JSON.stringify(mappedUser))
+    const usernameLocalPart = mappedUser.email.split("@")[0]?.toLowerCase() || "user"
+    const usernamePrefix = mappedUser.role === "mll" ? "mlops_analyst" : "mlops_manager"
+    const resolvedUsername = `${usernamePrefix}_${usernameLocalPart}`
+
+    const profilePayload = {
+      id: mappedUser.id,
+      email: mappedUser.email,
+      name: mappedUser.name,
+      role: mappedUser.role,
+      team: profile?.team || "",
+      account_name: resolvedUsername,
+      username: resolvedUsername,
+      leave_balance: profile?.leave_balance ?? 0,
+      annual_leave_total: profile?.annual_leave_total ?? 12,
+      annual_leave_remaining: profile?.annual_leave_remaining ?? 12,
     }
 
-    // Sau khi login thành công, vào thẳng trang employee
-    router.replace("/employee")
+    const { error: upsertError } = await supabase.from("profiles").upsert(profilePayload)
+    if (upsertError) {
+      setErrorMessage("Không thể tạo hồ sơ nhân viên. Vui lòng thử lại.")
+      setLoading(false)
+      return
+    }
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          ...mappedUser,
+          accountName: profilePayload.account_name,
+        }),
+      )
+      localStorage.setItem(`login_started_at_${mappedUser.id}`, Date.now().toString())
+    }
+
+    const roleToRoute: Record<User["role"], string> = {
+      mll: "/employee",
+      mlqc: "/qc",
+      hr: "/hr",
+    }
+    router.replace(roleToRoute[mappedUser.role])
     setLoading(false)
   }
 
@@ -77,156 +138,71 @@ export default function LoginPage() {
     await performLogin()
   }
 
-  const quickLogin = (loginEmail: string) => {
-    setEmail(loginEmail)
-    setPassword("123")
-    void performLogin()
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-300/30 rounded-full filter blur-3xl opacity-40 animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-300/30 rounded-full filter blur-3xl opacity-40 animate-pulse animation-delay-2000" />
-      </div>
+    <div className="min-h-screen bg-slate-950 px-4 py-12 relative overflow-hidden">
+      <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-gradient-to-br from-blue-600 to-cyan-400 opacity-50 blur-2xl" />
+      <div className="absolute -bottom-28 -left-24 h-80 w-80 rounded-full bg-gradient-to-br from-fuchsia-600 to-violet-500 opacity-50 blur-2xl" />
+      <div className="absolute top-20 left-6 h-12 w-12 rounded-full bg-cyan-400 shadow-lg" />
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="w-full max-w-5xl grid md:grid-cols-2 gap-8 items-center relative z-10"
-      >
+      <div className="relative mx-auto flex w-full max-w-5xl items-center justify-center">
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 0.1 }}
-          className="hidden md:block text-slate-900"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="relative w-full max-w-md"
         >
-          <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Manage Your Workday Beautifully
-          </h1>
-          <p className="text-xl text-slate-700 mb-8">
-            A premium work management platform designed for teams that demand excellence. Streamline your workflow with
-            elegant, intuitive dashboards tailored to your role.
-          </p>
-
-          <div className="space-y-4">
-            <div className="flex items-start space-x-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center border border-blue-300 flex-shrink-0">
-                <div className="w-3 h-3 bg-blue-600 rounded-full" />
-              </div>
-              <div>
-                <p className="font-semibold text-blue-900">Real-time Sync</p>
-                <p className="text-sm text-slate-600">Data synced from Google Sheets</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center border border-purple-300 flex-shrink-0">
-                <div className="w-3 h-3 bg-purple-600 rounded-full" />
-              </div>
-              <div>
-                <p className="font-semibold text-purple-900">Role-Based Access</p>
-                <p className="text-sm text-slate-600">Tailored dashboards for each role</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-4">
-              <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center border border-pink-300 flex-shrink-0">
-                <div className="w-3 h-3 bg-pink-600 rounded-full" />
-              </div>
-              <div>
-                <p className="font-semibold text-pink-900">Premium Design</p>
-                <p className="text-sm text-slate-600">Beautiful, modern interface</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-        >
-          <Card className="bg-white border border-slate-200 shadow-2xl p-8 rounded-2xl">
-            <div className="flex items-center justify-center mb-8">
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                <Briefcase className="w-7 h-7 text-white" />
-              </div>
+          <Card className="relative overflow-hidden rounded-[36px] border border-white/20 bg-gradient-to-b from-slate-900 via-indigo-900 to-blue-900 p-10 text-white shadow-2xl">
+            <div className="absolute inset-0">
+              <div className="absolute -top-16 -right-20 h-44 w-44 rounded-full bg-blue-500/30 blur-2xl" />
+              <div className="absolute -bottom-20 -left-16 h-52 w-52 rounded-full bg-fuchsia-500/30 blur-2xl" />
+              <div className="absolute inset-x-8 top-24 h-px bg-white/20" />
             </div>
 
-            <h2 className="text-3xl font-bold text-slate-900 mb-2 text-center">Welcome back</h2>
-            <p className="text-slate-600 text-center mb-8">Sign in to manage your workday</p>
+            <div className="relative z-10">
+              <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/30">
+                <Briefcase className="h-6 w-6 text-white" />
+              </div>
+              <h1 className="text-center text-4xl font-semibold tracking-tight">Welcome</h1>
+              <p className="mt-2 text-center text-sm text-white/70">
+                Login to manage your employee attendance
+              </p>
 
-            <form onSubmit={handleLogin} className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">Email</label>
-                <Input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">Password</label>
-                <Input
-                  type="password"
-                  placeholder="******"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400"
-                />
-              </div>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-6 rounded-lg"
-              >
-                {loading ? "Signing in..." : "Sign in"}
-              </Button>
-              {errorMessage && <p className="text-sm text-red-600 text-center">{errorMessage}</p>}
-            </form>
-
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-slate-600">Quick demo login</span>
-              </div>
+              <form onSubmit={handleLogin} className="mt-8 space-y-4">
+                <div className="relative">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/70">Email</label>
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-12 rounded-full border-white/20 bg-white/10 text-white placeholder:text-white/50"
+                  />
+                </div>
+                <div className="relative">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/70">
+                    Password
+                  </label>
+                  <Input
+                    type="password"
+                    placeholder="******"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-12 rounded-full border-white/20 bg-white/10 text-white placeholder:text-white/50"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="mt-2 h-12 w-full rounded-full bg-white text-indigo-700 font-semibold hover:bg-white/90"
+                >
+                  {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+                </Button>
+                {errorMessage && <p className="text-sm text-red-200 text-center">{errorMessage}</p>}
+              </form>
             </div>
-
-            <div className="space-y-2">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => quickLogin("mll@example.com")}
-                className="w-full px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-300 rounded-lg text-sm font-medium text-blue-700 transition-colors"
-              >
-                Employee (MLL)
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => quickLogin("mlqc@example.com")}
-                className="w-full px-4 py-2 bg-purple-50 hover:bg-purple-100 border border-purple-300 rounded-lg text-sm font-medium text-purple-700 transition-colors"
-              >
-                QC Manager (MLQC)
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => quickLogin("hr@example.com")}
-                className="w-full px-4 py-2 bg-pink-50 hover:bg-pink-100 border border-pink-300 rounded-lg text-sm font-medium text-pink-700 transition-colors"
-              >
-                HR Manager
-              </motion.button>
-            </div>
-
-            <p className="text-xs text-slate-500 text-center mt-6">Demo credentials - password: 123</p>
           </Card>
         </motion.div>
-      </motion.div>
+      </div>
     </div>
   )
 }

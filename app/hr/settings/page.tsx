@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Navbar } from "@/components/layout/navbar"
-import { HRDashboard } from "@/components/dashboards/hr-dashboard"
+import { AccountSettings } from "@/components/settings/account-settings"
 import type { User } from "@/types/user"
 
-export default function HRPage() {
+export default function HRSettingsPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
 
@@ -14,18 +14,14 @@ export default function HRPage() {
     const userData = localStorage.getItem("user")
     if (!userData) {
       router.push("/login")
-    } else {
-      const parsedUser = JSON.parse(userData)
-      if (parsedUser.role !== "hr") {
-        const roleToRoute: Record<User["role"], string> = {
-          mll: "/employee",
-          mlqc: "/qc",
-          hr: "/hr",
-        }
-        router.push(roleToRoute[parsedUser.role])
-      }
-      setUser(parsedUser)
+      return
     }
+    const parsedUser = JSON.parse(userData)
+    if (parsedUser.role !== "hr") {
+      router.push(`/${parsedUser.role}`)
+      return
+    }
+    setUser(parsedUser)
   }, [router])
 
   if (!user) return null
@@ -33,7 +29,10 @@ export default function HRPage() {
   return (
     <div className="min-h-screen">
       <Navbar user={user} />
-      <HRDashboard user={user} />
+      <main className="max-w-4xl mx-auto p-6">
+        <h1 className="text-2xl font-semibold text-white mb-6">Cài đặt tài khoản</h1>
+        <AccountSettings user={user} />
+      </main>
     </div>
   )
 }

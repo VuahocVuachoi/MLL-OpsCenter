@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import type { User } from "@/types/user"
-import { Search, Bell } from "lucide-react"
+import { Search, Bell, Settings } from "lucide-react"
 import { TargetAssignment } from "./hr/target-assignment"
 import { WorkAnalytics } from "@/components/dashboards/qc/work-analytics"
 import { AttendanceCalendarView } from "./qc/attendance-calendar-view" // use interactive calendar view instead of static calendar
@@ -19,6 +20,7 @@ interface HRDashboardProps {
 export function HRDashboard({ user }: HRDashboardProps) {
   const [activeTab, setActiveTab] = useState("overview")
   const [team, setTeam] = useState("all")
+  const router = useRouter()
 
   const kpis = [
     { label: "Total Employees", value: "124", icon: "👥", color: "from-primary to-pink-500" },
@@ -56,6 +58,12 @@ export function HRDashboard({ user }: HRDashboardProps) {
                   className="pl-10 bg-card border-border text-foreground placeholder:text-muted-foreground"
                 />
               </div>
+              <button
+                className="relative p-2 bg-card border border-border rounded-lg hover:bg-background-secondary"
+                onClick={() => router.push("/hr/settings")}
+              >
+                <Settings className="w-5 h-5 text-foreground" />
+              </button>
               <button className="relative p-2 bg-card border border-border rounded-lg hover:bg-background-secondary">
                 <Bell className="w-5 h-5 text-foreground" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-600 rounded-full" />

@@ -16,8 +16,13 @@ export default function QCPage() {
       router.push("/login")
     } else {
       const parsedUser = JSON.parse(userData)
-      if (parsedUser.role !== "qc") {
-        router.push(`/${parsedUser.role}`)
+      if (parsedUser.role !== "mlqc") {
+        const roleToRoute: Record<User["role"], string> = {
+          mll: "/employee",
+          mlqc: "/qc",
+          hr: "/hr",
+        }
+        router.push(roleToRoute[parsedUser.role])
       }
       setUser(parsedUser)
     }

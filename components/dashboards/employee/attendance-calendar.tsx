@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { Card } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { supabaseBrowser } from "@/lib/supabase-browser"
+import type { User } from "@/types/user"
 
 interface AttendanceCalendarProps {
   employeeName?: string
@@ -24,20 +26,6 @@ const VIETNAMESE_HOLIDAYS = [
   { date: "2025-09-02", name: "Ngày Quốc khánh" },
 ]
 
-// Mock attendance data - in real app, this would come from props/API
-const MOCK_ATTENDANCE: { [key: string]: string } = {
-  "2025-11-01": "C", // Working
-  "2025-11-02": "C",
-  "2025-11-03": "S", // Shift
-  "2025-11-04": "C",
-  "2025-11-05": "HC", // Holiday Comp
-  "2025-11-08": "C",
-  "2025-11-09": "NLB", // Sick Leave
-  "2025-11-10": "OFF", // Off/Weekend
-  "2025-11-15": "C",
-  "2025-11-16": "OT", // Overtime
-}
-
 const STATUS_CONFIG = {
   C: { label: "Đi làm", color: "bg-green-500", lightColor: "bg-green-100", textColor: "text-green-700" },
   S: { label: "Ca trực", color: "bg-yellow-500", lightColor: "bg-yellow-100", textColor: "text-yellow-700" },
@@ -54,7 +42,10 @@ const STATUS_CONFIG = {
 }
 
 export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 10, 1))
+  const supabase = useMemo(() => supabaseBrowser(), [])
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [attendanceMap, setAttendanceMap] = useState<Record<string, string>>({})
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
 
   const isWeekend = (date: Date): boolean => {
     return date.getDay() === 0 || date.getDay() === 6
@@ -95,7 +86,7 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
   }
 
   const getAttendanceStatus = (dateStr: string) => {
-    return MOCK_ATTENDANCE[dateStr] || null
+    return attendanceMap[dateStr] || null
   }
 
   const previousMonth = () => {
@@ -105,6 +96,37 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
   const nextMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
   }
+
+  useEffect(() => {
+    const userData = localStorage.getItem("user")
+    if (userData) {
+      setCurrentUser(JSON.parse(userData))
+    }
+  }, [])
+
+  useEffect(() => {
+    const loadAttendance = async () => {
+      if (!currentUser) return
+      const year = currentMonth.getFullYear()
+      const month = currentMonth.getMonth()
+      const monthStart = new Date(year, month, 1).toISOString().split("T")[0]
+      const monthEnd = new Date(year, month + 1, 0).toISOString().split("T")[0]
+      const { data, error } = await supabase
+        .from("time_sheets")
+        .select("work_date,worked_day")
+        .eq("user_id", currentUser.id)
+        .gte("work_date", monthStart)
+        .lte("work_date", monthEnd)
+        .eq("worked_day", true)
+      if (error || !data) return
+      const mapped: Record<string, string> = {}
+      data.forEach((row) => {
+        mapped[row.work_date] = "C"
+      })
+      setAttendanceMap(mapped)
+    }
+    void loadAttendance()
+  }, [currentUser, currentMonth, supabase])
 
   const days = getDaysInMonth()
   const monthName = currentMonth.toLocaleString("vi-VN", { month: "long", year: "numeric" })

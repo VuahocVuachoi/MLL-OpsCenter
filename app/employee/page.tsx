@@ -16,8 +16,13 @@ export default function EmployeePage() {
       router.push("/login")
     } else {
       const parsedUser = JSON.parse(userData)
-      if (parsedUser.role !== "employee") {
-        router.push(`/${parsedUser.role}`)
+      if (parsedUser.role !== "mll") {
+        const roleToRoute: Record<User["role"], string> = {
+          mll: "/employee",
+          mlqc: "/qc",
+          hr: "/hr",
+        }
+        router.push(roleToRoute[parsedUser.role])
       }
       setUser(parsedUser)
     }
