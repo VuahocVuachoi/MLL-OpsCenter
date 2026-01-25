@@ -51,7 +51,7 @@ export default function LoginPage() {
       .single()
 
     const fallbackRoleMap: Record<string, User["role"]> = {
-      "ntphu@enveritas-associate.org": "mll",
+      "ntphu@enveritas-associate.org": "mlqc",
       "pnquang@enveritas-associate.org": "hr",
       "tan@enveritas.org": "mlqc",
     }
