@@ -1,18 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { Card } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight, X } from "lucide-react"
-
-interface EmployeeAttendance {
-  id: number
-  name: string
-  pinId: string
-  schedule: { [key: string]: string }
-  shift?: string
-  country?: string
-}
+import { supabaseBrowser } from "@/lib/supabase-browser"
 
 // Vietnamese holidays 2025
 const VIETNAMESE_HOLIDAYS = [
@@ -31,11 +23,7 @@ const VIETNAMESE_HOLIDAYS = [
 
 const STATUS_CONFIG = {
   C: { label: "Đi làm", color: "bg-green-500", lightColor: "bg-green-100", textColor: "text-green-700" },
-  S: { label: "Ca trực", color: "bg-yellow-500", lightColor: "bg-yellow-100", textColor: "text-yellow-700" },
-  HC: { label: "Nghỉ bù", color: "bg-blue-500", lightColor: "bg-blue-100", textColor: "text-blue-700" },
   OFF: { label: "Không đi", color: "bg-gray-500", lightColor: "bg-gray-100", textColor: "text-gray-700" },
-  OT: { label: "Thêm giờ", color: "bg-red-500", lightColor: "bg-red-100", textColor: "text-red-700" },
-  NLB: { label: "Nghỉ phép", color: "bg-pink-500", lightColor: "bg-pink-100", textColor: "text-pink-700" },
   HOLIDAY: {
     label: "Ngày lễ",
     color: "bg-purple-500",
@@ -44,85 +32,34 @@ const STATUS_CONFIG = {
   },
 }
 
-const mockEmployees: EmployeeAttendance[] = [
-  {
-    id: 1,
-    name: "Trần Thị Staff",
-    pinId: "PIN001",
-    shift: "Morning",
-    country: "Vietnam",
-    schedule: {
-      "2025-11-01": "C",
-      "2025-11-02": "C",
-      "2025-11-03": "S",
-      "2025-11-04": "C",
-      "2025-11-05": "HC",
-      "2025-11-08": "C",
-      "2025-11-09": "NLB",
-      "2025-11-15": "C",
-      "2025-11-16": "OT",
-    },
-  },
-  {
-    id: 2,
-    name: "Nguyễn Văn A",
-    pinId: "PIN002",
-    shift: "Morning",
-    country: "Brazil",
-    schedule: {
-      "2025-11-01": "C",
-      "2025-11-02": "C",
-      "2025-11-03": "C",
-      "2025-11-04": "C",
-      "2025-11-05": "HC",
-      "2025-11-08": "C",
-      "2025-11-09": "C",
-      "2025-11-15": "C",
-      "2025-11-16": "C",
-    },
-  },
-  {
-    id: 3,
-    name: "Phạm Thị B",
-    pinId: "PIN003",
-    shift: "Afternoon",
-    country: "Vietnam",
-    schedule: {
-      "2025-11-01": "C",
-      "2025-11-02": "C",
-      "2025-11-03": "C",
-      "2025-11-04": "OFF",
-      "2025-11-05": "HC",
-      "2025-11-08": "C",
-      "2025-11-09": "C",
-      "2025-11-15": "C",
-      "2025-11-16": "C",
-    },
-  },
-  {
-    id: 4,
-    name: "Hoàng Văn C",
-    pinId: "PIN004",
-    shift: "Afternoon",
-    country: "Brazil",
-    schedule: {
-      "2025-11-01": "C",
-      "2025-11-02": "C",
-      "2025-11-03": "S",
-      "2025-11-04": "C",
-      "2025-11-05": "HC",
-      "2025-11-08": "C",
-      "2025-11-09": "NLB",
-      "2025-11-15": "C",
-      "2025-11-16": "OT",
-    },
-  },
+const MLL_USERS = [
+  "mlops_analyst_nqtoan",
+  "mlops_analyst_ttkthanh",
+  "mlops_analyst_ndthinh",
+  "mlops_analyst_ttnminh",
+  "mlops_analyst_pthuyen",
+  "mlops_analyst_mtmngan",
+  "mlops_analyst_vhtuyen",
+  "mlops_analyst_ttnyen",
+  "mlops_analyst_nhtvuong",
+  "mlops_analyst_nhuyen",
+  "mlops_analyst_tvbac",
+  "mlops_analyst_tttan",
+  "mlops_analyst_tnvanh",
+  "mlops_analyst_bthuy",
+  "mlops_analyst_nntuyen",
+  "mlops_analyst_lndquynh",
+  "mlops_analyst_nntvy",
+  "mlops_analyst_ntttuyen",
+  "mlops_analyst_ntpthao",
+  "mlops_analyst_tdthuan",
 ]
 
 export function AttendanceCalendarView() {
-  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 10, 1))
+  const supabase = useMemo(() => supabaseBrowser(), [])
+  const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [employees] = useState<EmployeeAttendance[]>(mockEmployees)
+  const [workedByDate, setWorkedByDate] = useState<Record<string, Set<string>>>({})
 
   const isWeekend = (date: Date): boolean => {
     return date.getDay() === 0 || date.getDay() === 6
@@ -160,24 +97,42 @@ export function AttendanceCalendarView() {
   }
 
   const getAttendanceForDate = (dateStr: string) => {
-    return employees
-      .filter((emp) => emp.schedule[dateStr])
-      .map((emp) => ({
-        id: emp.id,
-        name: emp.name,
-        pinId: emp.pinId,
-        status: emp.schedule[dateStr],
-        shift: emp.shift,
-        country: emp.country,
-      }))
-      .sort((a, b) => {
-        // Sort by shift (Morning first, then Afternoon)
-        if (a.shift !== b.shift) {
-          return a.shift === "Morning" ? -1 : 1
-        }
-        return a.name.localeCompare(b.name)
-      })
+    const workedSet = workedByDate[dateStr] || new Set<string>()
+    return MLL_USERS.map((username, index) => ({
+      id: index + 1,
+      name: username,
+      status: workedSet.has(username) ? "C" : "OFF",
+      country: "Peru",
+    }))
   }
+
+  useEffect(() => {
+    const loadWorkedDays = async () => {
+      const year = currentMonth.getFullYear()
+      const month = currentMonth.getMonth()
+      const start = new Date(year, month, 1).toISOString().split("T")[0]
+      const end = new Date(year, month + 1, 0).toISOString().split("T")[0]
+      const { data, error } = await supabase
+        .from("time_sheets")
+        .select("work_date,user_name,worked_day")
+        .gte("work_date", start)
+        .lte("work_date", end)
+        .eq("worked_day", true)
+
+      if (error || !data) return
+
+      const mapped: Record<string, Set<string>> = {}
+      data.forEach((row) => {
+        if (!row.worked_day) return
+        const date = row.work_date as string
+        const name = row.user_name as string
+        if (!mapped[date]) mapped[date] = new Set()
+        mapped[date].add(name)
+      })
+      setWorkedByDate(mapped)
+    }
+    void loadWorkedDays()
+  }, [currentMonth, supabase])
 
   const days = getDaysInMonth()
   const monthName = currentMonth.toLocaleString("vi-VN", { month: "long", year: "numeric" })
@@ -231,8 +186,9 @@ export function AttendanceCalendarView() {
                 const isCurrentMonth = date.getMonth() === currentMonth.getMonth()
                 const isWknd = isWeekend(date)
                 const holiday = isHoliday(dateStr)
-                const attendanceCount = employees.filter((emp) => emp.schedule[dateStr]).length
+                const attendanceCount = workedByDate[dateStr]?.size || 0
                 const isSelected = selectedDate === dateStr
+                const isToday = dateStr === new Date().toISOString().split("T")[0]
 
                 return (
                   <motion.div
@@ -248,6 +204,7 @@ export function AttendanceCalendarView() {
                         w-full h-24 rounded-xl p-2 flex flex-col items-center justify-center text-center transition-all duration-200 cursor-pointer
                         ${isCurrentMonth ? "border-2" : "opacity-50"}
                         ${isSelected ? "border-blue-500 bg-blue-50 shadow-lg" : ""}
+                        ${isToday && !isSelected ? "ring-2 ring-blue-300" : ""}
                         ${
                           holiday && !isSelected
                             ? "bg-gradient-to-br from-purple-100 to-purple-50 border-purple-300"
@@ -316,7 +273,7 @@ export function AttendanceCalendarView() {
             </div>
 
             <div className="space-y-3">
-              {selectedDateAttendance.map((emp, idx) => {
+                      {selectedDateAttendance.map((emp, idx) => {
                 const statusConfig = STATUS_CONFIG[emp.status as keyof typeof STATUS_CONFIG]
                 return (
                   <motion.div
@@ -328,15 +285,11 @@ export function AttendanceCalendarView() {
                   >
                     <div className="flex items-center gap-4 flex-1">
                       <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                        {emp.name.charAt(0)}
+                        {emp.name.split("_").pop()?.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1">
                         <p className="font-semibold text-slate-900">{emp.name}</p>
-                        <p className="text-xs text-slate-600">{emp.pinId}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-medium text-slate-600">{emp.country}</p>
-                        <p className="text-xs text-slate-500">{emp.shift}</p>
+                        <p className="text-xs text-slate-600">Peru</p>
                       </div>
                     </div>
                     <div className={`px-3 py-1.5 rounded-full text-xs font-semibold ${statusConfig.lightColor}`}>

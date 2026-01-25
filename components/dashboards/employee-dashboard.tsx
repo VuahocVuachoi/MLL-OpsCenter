@@ -121,7 +121,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
             </TabsContent>
 
             <TabsContent value="quick-links" className="mt-0">
-              <QuickLinksTab />
+              <QuickLinksTab user={user} />
             </TabsContent>
 
             <TabsContent value="performance" className="mt-0">
