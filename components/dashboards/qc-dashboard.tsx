@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Card } from "@/components/ui/card"
@@ -12,14 +12,12 @@ import { MonthlyTeamData } from "./qc/monthly-team-data"
 import { LeaveRequestTab } from "./qc/leave-request-tab"
 import { AttendanceTracking } from "./qc/attendance-tracking"
 import { WorkAnalytics } from "./qc/work-analytics"
-import { supabaseBrowser } from "@/lib/supabase-browser"
 
 interface QCDashboardProps {
   user: User
 }
 
 export function QCDashboard({ user }: QCDashboardProps) {
-  const supabase = useMemo(() => supabaseBrowser(), [])
   const [team, setTeam] = useState("all")
   const [activeTab, setActiveTab] = useState("attendance-calendar")
   const [teamSummary, setTeamSummary] = useState({
@@ -27,46 +25,7 @@ export function QCDashboard({ user }: QCDashboardProps) {
     totalPins: 0,
     avgPerformance: 0,
   })
-  const [activeOnlineCount, setActiveOnlineCount] = useState(0)
   const router = useRouter()
-
-  useEffect(() => {
-    const loadActiveLogins = async () => {
-      const now = new Date()
-      const windowStart = new Date(now.getTime() - 2 * 60 * 1000)
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("role", "mll")
-        .gte("last_seen_at", windowStart.toISOString())
-
-      if (!error) {
-        setActiveOnlineCount(data?.length ?? 0)
-        return
-      }
-
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("role", "mll")
-        .gte("last_login_at", windowStart.toISOString())
-
-      if (!fallbackError) {
-        setActiveOnlineCount(fallbackData?.length ?? 0)
-      }
-    }
-
-    void loadActiveLogins()
-    const interval = setInterval(loadActiveLogins, 60_000)
-
-    return () => clearInterval(interval)
-  }, [supabase])
-
-  const displaySummary =
-    activeTab === "team-output"
-      ? { ...teamSummary, activeToday: activeOnlineCount }
-      : { activeToday: activeOnlineCount, totalPins: 0, avgPerformance: 0 }
 
   return (
     <main className="min-h-screen p-6">
@@ -93,26 +52,28 @@ export function QCDashboard({ user }: QCDashboardProps) {
             </div>
           </div>
 
-          <Card className="bg-gradient-to-br from-card to-background-secondary border border-border rounded-xl p-8">
-            <div className="grid md:grid-cols-4 gap-4">
-              <div className="bg-gradient-to-br from-primary/20 to-pink-500/20 border border-primary/30 rounded-xl p-4">
-                <p className="text-xs text-muted-foreground mb-1">Total Team Members</p>
-                <p className="text-2xl font-bold text-primary">20</p>
+          {activeTab === "team-output" && (
+            <Card className="bg-gradient-to-br from-card to-background-secondary border border-border rounded-xl p-8">
+              <div className="grid md:grid-cols-4 gap-4">
+                <div className="bg-gradient-to-br from-primary/20 to-pink-500/20 border border-primary/30 rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground mb-1">Total Team Members</p>
+                  <p className="text-2xl font-bold text-primary">20</p>
+                </div>
+                <div className="bg-gradient-to-br from-secondary/20 to-cyan-400/20 border border-secondary/30 rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground mb-1">Active Today</p>
+                  <p className="text-2xl font-bold text-secondary">{teamSummary.activeToday}</p>
+                </div>
+                <div className="bg-gradient-to-br from-accent/20 to-lime-400/20 border border-accent/30 rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground mb-1">Total Pins Today</p>
+                  <p className="text-2xl font-bold text-accent">{teamSummary.totalPins.toLocaleString()}</p>
+                </div>
+                <div className="bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground mb-1">Avg Performance</p>
+                  <p className="text-2xl font-bold text-violet-400">{teamSummary.avgPerformance.toFixed(1)}</p>
+                </div>
               </div>
-              <div className="bg-gradient-to-br from-secondary/20 to-cyan-400/20 border border-secondary/30 rounded-xl p-4">
-                <p className="text-xs text-muted-foreground mb-1">Active Today</p>
-                <p className="text-2xl font-bold text-secondary">{displaySummary.activeToday}</p>
-              </div>
-              <div className="bg-gradient-to-br from-accent/20 to-lime-400/20 border border-accent/30 rounded-xl p-4">
-                <p className="text-xs text-muted-foreground mb-1">Total Pins Today</p>
-                <p className="text-2xl font-bold text-accent">{displaySummary.totalPins.toLocaleString()}</p>
-              </div>
-              <div className="bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 rounded-xl p-4">
-                <p className="text-xs text-muted-foreground mb-1">Avg Performance</p>
-                <p className="text-2xl font-bold text-violet-400">{displaySummary.avgPerformance.toFixed(1)}</p>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          )}
         </motion.div>
 
         {/* Tabs */}
