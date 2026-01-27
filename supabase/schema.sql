@@ -9,6 +9,7 @@ create table if not exists public.profiles (
   role text not null default 'mll' check (role in ('mll', 'mlqc', 'hr')),
   team text not null default '',
   account_name text not null default '',
+  last_login_at timestamp with time zone,
   leave_balance numeric(6, 2) not null default 0,
   annual_leave_total integer not null default 12,
   annual_leave_remaining integer not null default 12,

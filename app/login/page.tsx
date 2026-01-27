@@ -101,6 +101,7 @@ export default function LoginPage() {
       team: profile?.team || "",
       account_name: resolvedUsername,
       username: resolvedUsername,
+      last_login_at: new Date().toISOString(),
       leave_balance: profile?.leave_balance ?? 0,
       annual_leave_total: profile?.annual_leave_total ?? 12,
       annual_leave_remaining: profile?.annual_leave_remaining ?? 12,

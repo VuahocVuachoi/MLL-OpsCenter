@@ -160,13 +160,24 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
         .from("profiles")
         .select("id")
         .eq("role", "mll")
+        .gte("last_login_at", startOfToday.toISOString())
+        .lte("last_login_at", endOfToday.toISOString())
+
+      if (!error) {
+        setActiveLoginCount(data?.length ?? 0)
+        return
+      }
+
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("role", "mll")
         .gte("updated_at", startOfToday.toISOString())
         .lte("updated_at", endOfToday.toISOString())
 
-      if (error) {
-        return
+      if (!fallbackError) {
+        setActiveLoginCount(fallbackData?.length ?? 0)
       }
-      setActiveLoginCount(data?.length ?? 0)
     }
 
     void loadActiveLogins()
