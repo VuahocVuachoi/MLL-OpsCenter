@@ -114,7 +114,8 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
       }
 
       const grouped = rows.reduce<Record<string, typeof rows>>((acc, row) => {
-        const key = `${row.user_name}-${row.work_date}`
+        const safeName = row.user_name || "unknown"
+        const key = `${safeName}-${row.work_date}`
         if (!acc[key]) acc[key] = []
         acc[key].push(row)
         return acc
@@ -124,20 +125,21 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
         const totalPins = groupRows.reduce((sum, row) => sum + (row.pin_count || 0), 0)
         const totalTime = groupRows.reduce((sum, row) => sum + (row.duration_minutes || 0), 0)
         const workedDay = groupRows.some((row) => row.worked_day)
+        const safeUsername = groupRows[0].user_name || "unknown"
         return {
           date: groupRows[0].work_date,
-          username: groupRows[0].user_name,
+          username: safeUsername,
           totalPins,
           totalTime,
           averageHours: totalPins > 0 ? Number((totalTime / totalPins / 60).toFixed(1)) : 0,
           workedDay,
           status: (groupRows[0].status || "pending") as UserDaySubmission["status"],
           details: groupRows.map((row) => ({
-            pinCode: row.pin_id,
+            pinCode: row.pin_id || "",
             quantity: String(row.pin_count ?? ""),
             workTime: String(row.duration_minutes ?? ""),
-            jobType: row.mode,
-            country: row.country,
+            jobType: row.mode || "",
+            country: row.country || "",
             notes: row.notes || "",
           })),
         }
@@ -208,6 +210,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
   }
 
   const getInitials = (name: string) => {
+    if (!name) return "--"
     return name
       .split("_")
       .map((part) => part[0])
