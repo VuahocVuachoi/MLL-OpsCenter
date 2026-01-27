@@ -76,7 +76,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [loadError, setLoadError] = useState("")
   const data = submissions.flatMap((submission, index) =>
-    submission.details.map((detail, detailIndex) => ({
+    (submission.details ?? []).map((detail, detailIndex) => ({
       stt: index + 1,
       name: submission.username,
       pinId: detail.pinCode,
@@ -219,15 +219,15 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
       .slice(0, 2)
   }
 
-  const filteredSubmissions = submissions.filter((s) => s.date === selectedDate)
+  const filteredSubmissions = submissions.filter((s) => s?.date === selectedDate)
 
   const saveComment = () => {
-    if (commentRow !== null) {
+    if (commentRow !== null && data[commentRow]) {
       const newData = [...data]
       newData[commentRow].notes = commentText
       setSubmissions(
         submissions.map((submission, index) =>
-          index === Math.floor(commentRow / submission.details.length)
+          submission.details.length > 0 && index === Math.floor(commentRow / submission.details.length)
             ? {
                 ...submission,
                 details: submission.details.map((detail, detailIndex) =>
@@ -280,6 +280,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
           {filteredSubmissions.length > 0 ? (
             filteredSubmissions.map((submission) => {
               const isExpanded = expandedId === `${submission.date}-${submission.username}`
+              const details = submission.details ?? []
 
               return (
                 <motion.div key={`${submission.date}-${submission.username}`} layout>
@@ -312,7 +313,9 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                         {/* User Info */}
                         <div className="min-w-0">
                           <p className="font-semibold text-slate-900 text-sm">{submission.username}</p>
-                          <p className="text-xs text-slate-500">Submitted on {new Date(submission.date).toLocaleDateString("vi-VN")}</p>
+                          <p className="text-xs text-slate-500">
+                            Submitted on {submission.date ? new Date(submission.date).toLocaleDateString("vi-VN") : "--"}
+                          </p>
                         </div>
                       </div>
 
@@ -385,7 +388,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                   </div>
 
                   {/* Expanded Details */}
-                  {isExpanded && (
+                      {isExpanded && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
@@ -405,7 +408,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                             </tr>
                           </thead>
                           <tbody>
-                            {submission.details.map((detail, idx) => (
+                            {details.map((detail, idx) => (
                               <tr key={idx} className="border-b border-slate-200 bg-white hover:bg-blue-50">
                                 <td className="px-4 py-3 text-slate-900 font-medium">{detail.pinCode}</td>
                                 <td className="px-4 py-3 text-slate-700">{detail.quantity}</td>
