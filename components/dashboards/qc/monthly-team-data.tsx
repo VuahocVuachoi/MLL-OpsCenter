@@ -77,7 +77,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
   const [loadError, setLoadError] = useState("")
   const safeSubmissions = Array.isArray(submissions) ? submissions.filter(Boolean) : []
   const data = safeSubmissions.flatMap((submission, index) =>
-    (submission.details ?? []).map((detail, detailIndex) => ({
+    (submission.details ?? []).filter(Boolean).map((detail, detailIndex) => ({
       stt: index + 1,
       name: submission.username,
       pinId: detail.pinCode,
@@ -122,7 +122,9 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
         return acc
       }, {})
 
-      const mapped: UserDaySubmission[] = Object.values(grouped).map((groupRows) => {
+      const mapped: UserDaySubmission[] = Object.values(grouped)
+        .map((groupRows) => {
+          if (!groupRows?.length) return null
         const totalPins = groupRows.reduce((sum, row) => sum + (row.pin_count || 0), 0)
         const totalTime = groupRows.reduce((sum, row) => sum + (row.duration_minutes || 0), 0)
         const workedDay = groupRows.some((row) => row.worked_day)
@@ -144,7 +146,8 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
             notes: row.notes || "",
           })),
         }
-      })
+        })
+        .filter(Boolean) as UserDaySubmission[]
 
       setSubmissions(mapped)
     }
@@ -228,11 +231,11 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
       newData[commentRow].notes = commentText
       setSubmissions(
         submissions.map((submission, index) =>
-          submission.details.length > 0 && index === Math.floor(commentRow / submission.details.length)
+          (submission.details ?? []).length > 0 && index === Math.floor(commentRow / (submission.details ?? []).length)
             ? {
                 ...submission,
-                details: submission.details.map((detail, detailIndex) =>
-                  detailIndex === commentRow % submission.details.length ? { ...detail, notes: commentText } : detail
+                details: (submission.details ?? []).map((detail, detailIndex) =>
+                  detailIndex === commentRow % (submission.details ?? []).length ? { ...detail, notes: commentText } : detail
                 ),
               }
             : submission
@@ -281,7 +284,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
           {filteredSubmissions.length > 0 ? (
             filteredSubmissions.map((submission) => {
               const isExpanded = expandedId === `${submission.date}-${submission.username}`
-              const details = submission.details ?? []
+              const details = (submission.details ?? []).filter(Boolean)
 
               return (
                 <motion.div key={`${submission.date}-${submission.username}`} layout>
