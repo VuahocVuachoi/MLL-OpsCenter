@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Card } from "@/components/ui/card"
@@ -26,6 +26,12 @@ export function QCDashboard({ user }: QCDashboardProps) {
     avgPerformance: 0,
   })
   const router = useRouter()
+  const handleSummaryChange = useCallback(
+    (summary: { activeToday: number; totalPins: number; avgPerformance: number }) => {
+      setTeamSummary(summary)
+    },
+    [],
+  )
 
   return (
     <main className="min-h-screen p-6">
@@ -131,15 +137,7 @@ export function QCDashboard({ user }: QCDashboardProps) {
             </TabsContent>
 
             <TabsContent value="team-output" className="mt-0">
-              <MonthlyTeamData
-                onSummaryChange={(summary) =>
-                  setTeamSummary((prev) => ({
-                    ...prev,
-                    totalPins: summary.totalPins,
-                    avgPerformance: summary.avgPerformance,
-                  }))
-                }
-              />
+              <MonthlyTeamData onSummaryChange={handleSummaryChange} />
             </TabsContent>
 
             <TabsContent value="attendance" className="mt-0">
