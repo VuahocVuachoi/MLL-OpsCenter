@@ -75,7 +75,8 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
   const [showCommentModal, setShowCommentModal] = useState<boolean>(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [loadError, setLoadError] = useState("")
-  const data = submissions.flatMap((submission, index) =>
+  const safeSubmissions = Array.isArray(submissions) ? submissions.filter(Boolean) : []
+  const data = safeSubmissions.flatMap((submission, index) =>
     (submission.details ?? []).map((detail, detailIndex) => ({
       stt: index + 1,
       name: submission.username,
@@ -219,7 +220,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
       .slice(0, 2)
   }
 
-  const filteredSubmissions = submissions.filter((s) => s?.date === selectedDate)
+  const filteredSubmissions = safeSubmissions.filter((s) => s?.date === selectedDate)
 
   const saveComment = () => {
     if (commentRow !== null && data[commentRow]) {
