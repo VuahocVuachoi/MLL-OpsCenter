@@ -27,26 +27,22 @@ export function QCDashboard({ user }: QCDashboardProps) {
     totalPins: 0,
     avgPerformance: 0,
   })
+  const [activeOnlineCount, setActiveOnlineCount] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
-    let isMounted = true
-
     const loadActiveLogins = async () => {
-      const startOfToday = new Date()
-      startOfToday.setHours(0, 0, 0, 0)
-      const endOfToday = new Date()
-      endOfToday.setHours(23, 59, 59, 999)
+      const now = new Date()
+      const windowStart = new Date(now.getTime() - 2 * 60 * 1000)
 
       const { data, error } = await supabase
         .from("profiles")
         .select("id")
         .eq("role", "mll")
-        .gte("last_login_at", startOfToday.toISOString())
-        .lte("last_login_at", endOfToday.toISOString())
+        .gte("last_seen_at", windowStart.toISOString())
 
-      if (!error && isMounted) {
-        setTeamSummary((prev) => ({ ...prev, activeToday: data?.length ?? 0 }))
+      if (!error) {
+        setActiveOnlineCount(data?.length ?? 0)
         return
       }
 
@@ -54,22 +50,23 @@ export function QCDashboard({ user }: QCDashboardProps) {
         .from("profiles")
         .select("id")
         .eq("role", "mll")
-        .gte("updated_at", startOfToday.toISOString())
-        .lte("updated_at", endOfToday.toISOString())
+        .gte("last_login_at", windowStart.toISOString())
 
-      if (!fallbackError && isMounted) {
-        setTeamSummary((prev) => ({ ...prev, activeToday: fallbackData?.length ?? 0 }))
+      if (!fallbackError) {
+        setActiveOnlineCount(fallbackData?.length ?? 0)
       }
     }
 
     void loadActiveLogins()
     const interval = setInterval(loadActiveLogins, 60_000)
 
-    return () => {
-      isMounted = false
-      clearInterval(interval)
-    }
+    return () => clearInterval(interval)
   }, [supabase])
+
+  const displaySummary =
+    activeTab === "team-output"
+      ? { ...teamSummary, activeToday: activeOnlineCount }
+      : { activeToday: activeOnlineCount, totalPins: 0, avgPerformance: 0 }
 
   return (
     <main className="min-h-screen p-6">
@@ -104,15 +101,15 @@ export function QCDashboard({ user }: QCDashboardProps) {
               </div>
               <div className="bg-gradient-to-br from-secondary/20 to-cyan-400/20 border border-secondary/30 rounded-xl p-4">
                 <p className="text-xs text-muted-foreground mb-1">Active Today</p>
-                <p className="text-2xl font-bold text-secondary">{teamSummary.activeToday}</p>
+                <p className="text-2xl font-bold text-secondary">{displaySummary.activeToday}</p>
               </div>
               <div className="bg-gradient-to-br from-accent/20 to-lime-400/20 border border-accent/30 rounded-xl p-4">
                 <p className="text-xs text-muted-foreground mb-1">Total Pins Today</p>
-                <p className="text-2xl font-bold text-accent">{teamSummary.totalPins.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-accent">{displaySummary.totalPins.toLocaleString()}</p>
               </div>
               <div className="bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 rounded-xl p-4">
                 <p className="text-xs text-muted-foreground mb-1">Avg Performance</p>
-                <p className="text-2xl font-bold text-violet-400">{teamSummary.avgPerformance.toFixed(1)}</p>
+                <p className="text-2xl font-bold text-violet-400">{displaySummary.avgPerformance.toFixed(1)}</p>
               </div>
             </div>
           </Card>

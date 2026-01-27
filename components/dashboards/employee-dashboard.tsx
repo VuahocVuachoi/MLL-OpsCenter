@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -11,13 +11,37 @@ import { LeaveRequestTab } from "./employee/leave-request-tab"
 import { PerformanceTab } from "./employee/performance-tab"
 import { TimeSheetsTab } from "./employee/time-sheets-tab"
 import { AttendanceCalendar } from "./employee/attendance-calendar"
+import { supabaseBrowser } from "@/lib/supabase-browser"
 
 interface EmployeeDashboardProps {
   user: User
 }
 
 export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
+  const supabase = useMemo(() => supabaseBrowser(), [])
   const [activeTab, setActiveTab] = useState("time-sheets")
+
+  useEffect(() => {
+    const heartbeat = async () => {
+      if (!user?.id) return
+      await supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", user.id)
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void heartbeat()
+      }
+    }
+
+    void heartbeat()
+    const interval = setInterval(heartbeat, 30_000)
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+    }
+  }, [supabase, user?.id])
 
   return (
     <main className="min-h-screen p-6">

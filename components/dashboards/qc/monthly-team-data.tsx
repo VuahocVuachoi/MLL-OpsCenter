@@ -199,6 +199,10 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
 
   const handleRightClick = (e: React.MouseEvent, idx: number) => {
     e.preventDefault()
+    openCommentForRow(idx)
+  }
+
+  const openCommentForRow = (idx: number) => {
     setCommentRow(idx)
     setShowCommentModal(true)
   }
@@ -481,7 +485,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                         </span>
                       ) : (
                         <button
-                          onClick={() => handleRightClick(new MouseEvent("contextmenu") as any, idx)}
+                          onClick={() => openCommentForRow(idx)}
                           className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
                         >
                           <MessageSquare className="w-4 h-4" />
