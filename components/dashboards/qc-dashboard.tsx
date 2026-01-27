@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Card } from "@/components/ui/card"
@@ -12,12 +12,14 @@ import { MonthlyTeamData } from "./qc/monthly-team-data"
 import { LeaveRequestTab } from "./qc/leave-request-tab"
 import { AttendanceTracking } from "./qc/attendance-tracking"
 import { WorkAnalytics } from "./qc/work-analytics"
+import { supabaseBrowser } from "@/lib/supabase-browser"
 
 interface QCDashboardProps {
   user: User
 }
 
 export function QCDashboard({ user }: QCDashboardProps) {
+  const supabase = useMemo(() => supabaseBrowser(), [])
   const [team, setTeam] = useState("all")
   const [activeTab, setActiveTab] = useState("attendance-calendar")
   const [teamSummary, setTeamSummary] = useState({
@@ -26,6 +28,48 @@ export function QCDashboard({ user }: QCDashboardProps) {
     avgPerformance: 0,
   })
   const router = useRouter()
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadActiveLogins = async () => {
+      const startOfToday = new Date()
+      startOfToday.setHours(0, 0, 0, 0)
+      const endOfToday = new Date()
+      endOfToday.setHours(23, 59, 59, 999)
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("role", "mll")
+        .gte("last_login_at", startOfToday.toISOString())
+        .lte("last_login_at", endOfToday.toISOString())
+
+      if (!error && isMounted) {
+        setTeamSummary((prev) => ({ ...prev, activeToday: data?.length ?? 0 }))
+        return
+      }
+
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("role", "mll")
+        .gte("updated_at", startOfToday.toISOString())
+        .lte("updated_at", endOfToday.toISOString())
+
+      if (!fallbackError && isMounted) {
+        setTeamSummary((prev) => ({ ...prev, activeToday: fallbackData?.length ?? 0 }))
+      }
+    }
+
+    void loadActiveLogins()
+    const interval = setInterval(loadActiveLogins, 60_000)
+
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
+  }, [supabase])
 
   return (
     <main className="min-h-screen p-6">
@@ -129,7 +173,15 @@ export function QCDashboard({ user }: QCDashboardProps) {
             </TabsContent>
 
             <TabsContent value="team-output" className="mt-0">
-              <MonthlyTeamData onSummaryChange={setTeamSummary} />
+              <MonthlyTeamData
+                onSummaryChange={(summary) =>
+                  setTeamSummary((prev) => ({
+                    ...prev,
+                    totalPins: summary.totalPins,
+                    avgPerformance: summary.avgPerformance,
+                  }))
+                }
+              />
             </TabsContent>
 
             <TabsContent value="attendance" className="mt-0">
