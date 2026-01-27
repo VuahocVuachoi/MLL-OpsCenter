@@ -75,6 +75,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
   const [showCommentModal, setShowCommentModal] = useState<boolean>(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [loadError, setLoadError] = useState("")
+  const [activeLoginCount, setActiveLoginCount] = useState(0)
   const data = submissions.flatMap((submission, index) =>
     submission.details.map((detail, detailIndex) => ({
       stt: index + 1,
@@ -150,8 +151,30 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
   }, [selectedDate, supabase])
 
   useEffect(() => {
+    const loadActiveLogins = async () => {
+      const startOfToday = new Date()
+      startOfToday.setHours(0, 0, 0, 0)
+      const endOfToday = new Date()
+      endOfToday.setHours(23, 59, 59, 999)
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("role", "mll")
+        .gte("updated_at", startOfToday.toISOString())
+        .lte("updated_at", endOfToday.toISOString())
+
+      if (error) {
+        return
+      }
+      setActiveLoginCount(data?.length ?? 0)
+    }
+
+    void loadActiveLogins()
+  }, [supabase])
+
+  useEffect(() => {
     if (!onSummaryChange) return
-    const activeToday = submissions.filter((submission) => submission.workedDay).length
+    const activeToday = activeLoginCount
     const totalPins = submissions.reduce((sum, submission) => sum + submission.totalPins, 0)
     const avgHours =
       submissions.length > 0
@@ -162,7 +185,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
       totalPins,
       avgPerformance: avgHours,
     })
-  }, [submissions, onSummaryChange])
+  }, [submissions, activeLoginCount, onSummaryChange])
 
   const updateStatus = async (submissionDate: string, username: string, status: UserDaySubmission["status"]) => {
     if (!currentUser) return
