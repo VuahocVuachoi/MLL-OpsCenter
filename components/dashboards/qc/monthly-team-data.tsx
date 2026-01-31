@@ -34,40 +34,10 @@ interface MonthlyTeamDataProps {
   onSummaryChange?: (summary: { activeToday: number; totalPins: number; avgPerformance: number }) => void
 }
 
-const mockSubmissions: UserDaySubmission[] = [
-  {
-    date: new Date().toISOString().split("T")[0],
-    username: "miops_analyst_ntqhao",
-    totalPins: 3,
-    totalTime: 900,
-    averageHours: 5,
-    workedDay: true,
-    status: "pending",
-    details: [
-      { pinCode: "36800-37000", quantity: "1", workTime: "420", jobType: "df review", country: "Peru", notes: "Peru 36800-37000 df review" },
-      { pinCode: "94401-94600", quantity: "1", workTime: "330", jobType: "df review", country: "Peru", notes: "Peru 94401-94600 df review" },
-      { pinCode: "95601-95800", quantity: "1", workTime: "150", jobType: "df review", country: "Peru", notes: "Peru 95601-95800 df review" },
-    ],
-  },
-  {
-    date: new Date().toISOString().split("T")[0],
-    username: "miops_analyst_tybac",
-    totalPins: 2,
-    totalTime: 600,
-    averageHours: 5,
-    workedDay: true,
-    status: "approved",
-    details: [
-      { pinCode: "36800-37000", quantity: "1", workTime: "350", jobType: "label", country: "Brazil", notes: "Brazil label work" },
-      { pinCode: "50000-51000", quantity: "1", workTime: "250", jobType: "df review", country: "Brazil", notes: "Brazil review" },
-    ],
-  },
-]
-
 export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
   const supabase = useMemo(() => supabaseBrowser(), [])
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
-  const [submissions, setSubmissions] = useState<UserDaySubmission[]>(mockSubmissions)
+  const [selectedDate, setSelectedDate] = useState("")
+  const [submissions, setSubmissions] = useState<UserDaySubmission[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [minPinFilter, setMinPinFilter] = useState<string>("")
   const [commentRow, setCommentRow] = useState<number | null>(null)
@@ -96,6 +66,12 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
   }, [])
 
   useEffect(() => {
+    if (selectedDate) return
+    setSelectedDate(new Date().toISOString().split("T")[0])
+  }, [selectedDate])
+
+  useEffect(() => {
+    if (!selectedDate) return
     const loadData = async () => {
       setLoadError("")
       const { data: rows, error } = await supabase

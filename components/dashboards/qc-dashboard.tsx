@@ -149,7 +149,7 @@ export function QCDashboard({ user }: QCDashboardProps) {
                 {[
                   { label: "QC Dashboard", href: "#" },
                   { label: "Analytics", href: "#" },
-                  { label: "Reports", href: "#" },
+                  { label: "Tool Report", href: "#" },
                   { label: "Documentation", href: "#" },
                   { label: "Tools", href: "#" },
                   { label: "Settings", href: "/qc/settings" },

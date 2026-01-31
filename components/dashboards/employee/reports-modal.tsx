@@ -16,6 +16,7 @@ export function ReportsModal({ isOpen, onClose, user }: ReportsModalProps) {
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [errorDescription, setErrorDescription] = useState("")
   const [reportDate, setReportDate] = useState(new Date().toISOString().split("T")[0])
+  const [reportType, setReportType] = useState<"report" | "suggestion">("report")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
@@ -37,6 +38,7 @@ export function ReportsModal({ isOpen, onClose, user }: ReportsModalProps) {
     setVideoFile(null)
     setErrorDescription("")
     setReportDate(new Date().toISOString().split("T")[0])
+    setReportType("report")
     setErrorMessage("")
   }
 
@@ -51,6 +53,7 @@ export function ReportsModal({ isOpen, onClose, user }: ReportsModalProps) {
     formData.append("description", errorDescription.trim())
     formData.append("username", username)
     formData.append("reportDate", reportDate)
+    formData.append("reportType", reportType)
 
     const response = await fetch("/api/reports", {
       method: "POST",
@@ -85,8 +88,8 @@ export function ReportsModal({ isOpen, onClose, user }: ReportsModalProps) {
       >
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-white">Report Issues</h2>
-            <p className="text-sm text-slate-400 mt-1">Upload a video and describe the issue</p>
+            <h2 className="text-2xl font-bold text-white">Tool Report</h2>
+            <p className="text-sm text-slate-400 mt-1">Choose report type and describe the issue</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
             <X className="w-6 h-6 text-slate-400" />
@@ -110,6 +113,34 @@ export function ReportsModal({ isOpen, onClose, user }: ReportsModalProps) {
                 Người gửi: <span className="font-semibold">{username}</span>
               </p>
             </Card>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-white">Loại report</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setReportType("report")}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    reportType === "report"
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                  }`}
+                >
+                  Report tool
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportType("suggestion")}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    reportType === "suggestion"
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                  }`}
+                >
+                  Suggestion
+                </button>
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -151,12 +182,17 @@ export function ReportsModal({ isOpen, onClose, user }: ReportsModalProps) {
 
             <div className="space-y-3">
               <label className="block text-sm font-semibold text-white">
-                Describe the issue <span className="text-red-400">*</span>
+                {reportType === "suggestion" ? "Describe your suggestion" : "Describe the issue"}{" "}
+                <span className="text-red-400">*</span>
               </label>
               <textarea
                 value={errorDescription}
                 onChange={(e) => setErrorDescription(e.target.value)}
-                placeholder="Please describe the error or issue you encountered..."
+                placeholder={
+                  reportType === "suggestion"
+                    ? "Please describe your suggestion for the tool..."
+                    : "Please describe the error or issue you encountered..."
+                }
                 required
                 className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 rows={5}

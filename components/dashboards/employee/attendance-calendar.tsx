@@ -43,9 +43,10 @@ const STATUS_CONFIG = {
 
 export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarProps) {
   const supabase = useMemo(() => supabaseBrowser(), [])
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [currentMonth, setCurrentMonth] = useState(new Date(2026, 0, 1))
   const [attendanceMap, setAttendanceMap] = useState<Record<string, string>>({})
   const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const demoDate = "2026-01-31"
 
   const isWeekend = (date: Date): boolean => {
     return date.getDay() === 0 || date.getDay() === 6
@@ -172,7 +173,7 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
                 const isCurrentMonth = date.getMonth() === currentMonth.getMonth()
                 const isWknd = isWeekend(date)
                 const holiday = isHoliday(dateStr)
-                const attendance = getAttendanceStatus(dateStr)
+                const attendance = getAttendanceStatus(dateStr) || (dateStr === demoDate ? "C" : null)
                 const statusConfig = attendance ? STATUS_CONFIG[attendance as keyof typeof STATUS_CONFIG] : null
 
                 return (
@@ -190,9 +191,11 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
                         ${
                           holiday
                             ? "bg-gradient-to-br from-purple-100 to-purple-50 border-purple-300"
-                            : isWknd
-                              ? "bg-slate-50 border-slate-200"
-                              : "bg-white border-slate-200"
+                            : statusConfig
+                              ? `${statusConfig.lightColor} border-slate-200`
+                              : isWknd
+                                ? "bg-slate-50 border-slate-200"
+                                : "bg-white border-slate-200"
                         }
                         ${statusConfig ? "hover:shadow-lg" : "hover:shadow-md"}
                       `}

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
-import { Briefcase, BookOpen, Users, BarChart3, BookMarked, Settings, Music, Newspaper } from "lucide-react"
+import { BookOpen, Users, BarChart3, BookMarked, Settings } from "lucide-react"
 import { ReportsModal } from "./reports-modal"
 import type { User } from "@/types/user"
 
@@ -13,13 +13,10 @@ interface QuickLinksTabProps {
 }
 
 const quickLinks = [
-  { icon: Briefcase, title: "Tool Desk", description: "Access your tools", href: "#" },
   { icon: BookOpen, title: "Basic Docs", description: "Documentation & guides", href: "#" },
   { icon: Users, title: "Workspace", description: "Team collaboration", href: "#" },
-  { icon: BarChart3, title: "Reports", description: "View analytics", href: "reports" },
+  { icon: BarChart3, title: "Tool Report", description: "Report tool issues", href: "reports" },
   { icon: BookMarked, title: "Knowledge Base", description: "Learn & explore", href: "#" },
-  { icon: Music, title: "Phòng nghe nhạc", description: "Music room", href: "#" },
-  { icon: Newspaper, title: "Phòng đọc báo", description: "News room", href: "#" },
   { icon: Settings, title: "Settings", description: "Manage preferences", href: "/employee/settings" },
 ]
 

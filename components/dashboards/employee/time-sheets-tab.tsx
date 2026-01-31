@@ -307,16 +307,16 @@ export function TimeSheetsTab() {
 
     lines.forEach((line, idx) => {
       const cells = line.split("\t")
-      if (cells.length >= 7) {
+      if (cells.length >= 4) {
         newRows.push({
           id: Date.now().toString() + idx,
-          username: usernamePrefix || cells[0]?.trim() || "",
-          pinCode: cells[1]?.trim() || "",
-          pinQuantity: cells[2]?.trim() || "",
-          workTime: cells[3]?.trim() || "",
-          jobType: cells[4]?.trim() || "",
-          country: cells[5]?.trim() || "",
-          notes: cells[6]?.trim() || "",
+          username: usernamePrefix || "",
+          pinCode: cells[0]?.trim() || "",
+          pinQuantity: cells[1]?.trim() || "",
+          workTime: cells[2]?.trim() || "",
+          jobType: "",
+          country: "",
+          notes: cells[3]?.trim() || "",
         })
       }
     })
@@ -464,7 +464,6 @@ export function TimeSheetsTab() {
               </button>
               <button
                 onClick={() => setShowEditModal(true)}
-                disabled={!isEditing}
                 className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-lg font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Calendar className="w-4 h-4" />
@@ -482,11 +481,11 @@ export function TimeSheetsTab() {
                 <tr className="bg-blue-50 border-b border-blue-200">
                   <th className="px-3 py-3 text-left font-semibold text-slate-700 w-8">STT</th>
                   <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-32">Username</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-28">PIN Code</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-24">Số lượng</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-24">Thời gian (phút)</th>
                   <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-32">Loại công việc</th>
                   <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-24">Quốc gia</th>
+                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-28">PIN ID</th>
+                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-24">Số lượng</th>
+                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-24">Thời gian (phút)</th>
                   <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-40">Ghi chú</th>
                   <th className="px-3 py-3 text-center font-semibold text-slate-700 w-12">Xoá</th>
                 </tr>
@@ -501,35 +500,6 @@ export function TimeSheetsTab() {
                         onChange={(e) => updateRow(row.id, "username", e.target.value)}
                         disabled={!isEditing || !!usernamePrefix}
                         placeholder="Username"
-                        className="bg-white border-slate-300 text-slate-900 text-xs disabled:bg-slate-100 disabled:cursor-not-allowed"
-                      />
-                    </td>
-                    <td className="px-3 py-3">
-                      <Input
-                        value={row.pinCode}
-                        onChange={(e) => updateRow(row.id, "pinCode", e.target.value)}
-                        disabled={!isEditing}
-                        placeholder="e.g., 36800-37000"
-                        className="bg-white border-slate-300 text-slate-900 text-xs disabled:bg-slate-100 disabled:cursor-not-allowed"
-                      />
-                    </td>
-                    <td className="px-3 py-3">
-                      <Input
-                        value={row.pinQuantity}
-                        onChange={(e) => updateRow(row.id, "pinQuantity", e.target.value)}
-                        disabled={!isEditing}
-                        placeholder="Qty"
-                        type="number"
-                        className="bg-white border-slate-300 text-slate-900 text-xs disabled:bg-slate-100 disabled:cursor-not-allowed"
-                      />
-                    </td>
-                    <td className="px-3 py-3">
-                      <Input
-                        value={row.workTime}
-                        onChange={(e) => updateRow(row.id, "workTime", e.target.value)}
-                        disabled={!isEditing}
-                        placeholder="Minutes"
-                        type="number"
                         className="bg-white border-slate-300 text-slate-900 text-xs disabled:bg-slate-100 disabled:cursor-not-allowed"
                       />
                     </td>
@@ -568,6 +538,35 @@ export function TimeSheetsTab() {
                           ))}
                         </SelectContent>
                       </Select>
+                    </td>
+                    <td className="px-3 py-3">
+                      <Input
+                        value={row.pinCode}
+                        onChange={(e) => updateRow(row.id, "pinCode", e.target.value)}
+                        disabled={!isEditing}
+                        placeholder="e.g., 36800-37000"
+                        className="bg-white border-slate-300 text-slate-900 text-xs disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      />
+                    </td>
+                    <td className="px-3 py-3">
+                      <Input
+                        value={row.pinQuantity}
+                        onChange={(e) => updateRow(row.id, "pinQuantity", e.target.value)}
+                        disabled={!isEditing}
+                        placeholder="Qty"
+                        type="number"
+                        className="bg-white border-slate-300 text-slate-900 text-xs disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      />
+                    </td>
+                    <td className="px-3 py-3">
+                      <Input
+                        value={row.workTime}
+                        onChange={(e) => updateRow(row.id, "workTime", e.target.value)}
+                        disabled={!isEditing}
+                        placeholder="Minutes"
+                        type="number"
+                        className="bg-white border-slate-300 text-slate-900 text-xs disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      />
                     </td>
                     <td className="px-3 py-3">
                       <Input
@@ -695,7 +694,7 @@ export function TimeSheetsTab() {
             </div>
 
             <p className="text-sm text-slate-600 mb-4">
-              Sao chép các hàng từ Google Sheets (bao gồm các cột: Username, PIN Code, Số lượng, Thời gian (phút), Loại công việc, Quốc gia, Ghi chú) và dán vào đây:
+              Sao chép các hàng từ Google Sheets (bao gồm các cột: PIN ID, Số lượng, Thời gian (phút), Ghi chú) và dán vào đây:
             </p>
 
             <Textarea
