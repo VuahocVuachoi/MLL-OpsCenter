@@ -46,7 +46,6 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [attendanceMap, setAttendanceMap] = useState<Record<string, string>>({})
   const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const demoDate = getDateString(new Date())
 
   const isWeekend = (date: Date): boolean => {
     return date.getDay() === 0 || date.getDay() === 6
@@ -92,6 +91,8 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
     const day = parts.find((p) => p.type === "day")?.value
     return `${year}-${month}-${day}`
   }
+
+  const demoDate = getDateString(new Date())
 
   const getAttendanceStatus = (dateStr: string) => {
     return attendanceMap[dateStr] || null
