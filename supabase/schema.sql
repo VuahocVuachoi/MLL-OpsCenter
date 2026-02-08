@@ -132,6 +132,11 @@ on public.time_sheets
 for update
 using (public.is_hr_or_mlqc());
 
+create policy "time_sheets_delete_own"
+on public.time_sheets
+for delete
+using (auth.uid() = user_id);
+
 alter table public.time_sheets
   add column if not exists status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   add column if not exists approved_by uuid references public.profiles (id),
@@ -179,6 +184,35 @@ create policy "leave_requests_update_hr_qc"
 on public.leave_requests
 for update
 using (public.is_hr_or_mlqc());
+
+-- Notifications (approval/rejection events)
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  title text not null default '',
+  message text not null default '',
+  event_type text not null default 'info' check (event_type in ('approved', 'rejected', 'info')),
+  work_date date,
+  is_read boolean not null default false,
+  created_at timestamp with time zone not null default now()
+);
+
+alter table public.notifications enable row level security;
+
+create policy "notifications_select_own"
+on public.notifications
+for select
+using (auth.uid() = user_id);
+
+create policy "notifications_insert_hr_qc"
+on public.notifications
+for insert
+with check (public.is_hr_or_mlqc());
+
+create policy "notifications_update_own"
+on public.notifications
+for update
+using (auth.uid() = user_id);
 
 -- Monthly attendance stats
 create table if not exists public.monthly_attendance_stats (

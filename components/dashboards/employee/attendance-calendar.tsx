@@ -43,10 +43,10 @@ const STATUS_CONFIG = {
 
 export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarProps) {
   const supabase = useMemo(() => supabaseBrowser(), [])
-  const [currentMonth, setCurrentMonth] = useState(new Date(2026, 0, 1))
+  const [currentMonth, setCurrentMonth] = useState(new Date())
   const [attendanceMap, setAttendanceMap] = useState<Record<string, string>>({})
   const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const demoDate = "2026-01-31"
+  const demoDate = getDateString(new Date())
 
   const isWeekend = (date: Date): boolean => {
     return date.getDay() === 0 || date.getDay() === 6
@@ -65,17 +65,15 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
     const daysInMonth = lastDay.getDate()
 
     const days: Date[] = []
-    // Add empty days for days before month starts
-    for (let i = 0; i < firstDay.getDay(); i++) {
-      days.push(new Date(year, month, -(firstDay.getDay() - i - 1)))
+    const startOffset = (firstDay.getDay() + 6) % 7
+    for (let i = 0; i < startOffset; i++) {
+      days.push(new Date(year, month, -(startOffset - i - 1)))
     }
-    // Add days of month
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(new Date(year, month, day))
     }
-    // Add empty days to fill the last week
-    const lastDayOfWeek = lastDay.getDay()
-    for (let i = 1; i < 7 - lastDayOfWeek; i++) {
+    const endOffset = (lastDay.getDay() + 6) % 7
+    for (let i = 1; i < 7 - endOffset; i++) {
       days.push(new Date(year, month + 1, i))
     }
 
@@ -83,7 +81,16 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
   }
 
   const getDateString = (date: Date): string => {
-    return date.toISOString().split("T")[0]
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date)
+    const year = parts.find((p) => p.type === "year")?.value
+    const month = parts.find((p) => p.type === "month")?.value
+    const day = parts.find((p) => p.type === "day")?.value
+    return `${year}-${month}-${day}`
   }
 
   const getAttendanceStatus = (dateStr: string) => {

@@ -78,14 +78,15 @@ export function AttendanceCalendarView() {
     const daysInMonth = lastDay.getDate()
 
     const days: Date[] = []
-    for (let i = 0; i < firstDay.getDay(); i++) {
-      days.push(new Date(year, month, -(firstDay.getDay() - i - 1)))
+    const startOffset = (firstDay.getDay() + 6) % 7
+    for (let i = 0; i < startOffset; i++) {
+      days.push(new Date(year, month, -(startOffset - i - 1)))
     }
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(new Date(year, month, day))
     }
-    const lastDayOfWeek = lastDay.getDay()
-    for (let i = 1; i < 7 - lastDayOfWeek; i++) {
+    const endOffset = (lastDay.getDay() + 6) % 7
+    for (let i = 1; i < 7 - endOffset; i++) {
       days.push(new Date(year, month + 1, i))
     }
 
@@ -93,7 +94,16 @@ export function AttendanceCalendarView() {
   }
 
   const getDateString = (date: Date): string => {
-    return date.toISOString().split("T")[0]
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date)
+    const year = parts.find((p) => p.type === "year")?.value
+    const month = parts.find((p) => p.type === "month")?.value
+    const day = parts.find((p) => p.type === "day")?.value
+    return `${year}-${month}-${day}`
   }
 
   const getAttendanceForDate = (dateStr: string) => {
@@ -137,6 +147,17 @@ export function AttendanceCalendarView() {
   const days = getDaysInMonth()
   const monthName = currentMonth.toLocaleString("vi-VN", { month: "long", year: "numeric" })
   const selectedDateAttendance = selectedDate ? getAttendanceForDate(selectedDate) : []
+  const selectedDateCounts = selectedDateAttendance.reduce(
+    (acc, item) => {
+      if (item.status === "C") {
+        acc.worked += 1
+      } else {
+        acc.off += 1
+      }
+      return acc
+    },
+    { worked: 0, off: 0 },
+  )
   const selectedDateInfo = selectedDate ? new Date(selectedDate) : null
 
   return (
@@ -262,7 +283,9 @@ export function AttendanceCalendarView() {
                 <h3 className="text-xl font-bold text-slate-900">
                   Danh sách nhân viên - {selectedDateInfo?.toLocaleDateString("vi-VN")}
                 </h3>
-                <p className="text-sm text-slate-600 mt-1">{selectedDateAttendance.length} nhân viên đi làm</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  {selectedDateCounts.worked} đi làm • {selectedDateCounts.off} không đi
+                </p>
               </div>
               <button
                 onClick={() => setSelectedDate(null)}

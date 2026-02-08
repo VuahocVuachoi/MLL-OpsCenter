@@ -58,24 +58,24 @@ export function TimeSheetsTab() {
   }, [currentUser])
 
   const modeOptions = [
-    "label",
-    "label recorrection",
+    "Label",
+    "Label recorrection",
     "QC - labeling",
-    "team call",
-    "gps search",
-    "adding archetype",
-    "training",
-    "document preparation",
-    "pins review & assignment",
-    "df review",
+    "Team call",
+    "GPS search",
+    "Adding archetype",
+    "Training",
+    "Document preparation",
+    "Pins review & assignment",
+    "DF review",
     "QC - df review",
-    "map review",
-    "polygon check",
+    "Map review",
+    "Polygon check",
     "QC - polygon check",
-    "tool issues",
-    "pins loading",
+    "Tool issues",
+    "Pins loading",
     "GT check",
-    "timesheet prep.",
+    "Timesheet prep.",
     "BD list",
     "Point Dropper",
     "Demo task",
@@ -296,6 +296,9 @@ export function TimeSheetsTab() {
   const updateRow = (id: string, field: keyof TimeSheetRow, value: string) => {
     setRows(rows.map((row) => (row.id === id ? { ...row, [field]: value } : row)))
   }
+
+  const sanitizePinId = (value: string) => value.replace(/[^0-9-]/g, "")
+  const sanitizeInt = (value: string) => value.replace(/[^0-9]/g, "")
 
   const deleteRow = (id: string) => {
     setRows(rows.filter((row) => row.id !== id))
@@ -542,29 +545,33 @@ export function TimeSheetsTab() {
                     <td className="px-3 py-3">
                       <Input
                         value={row.pinCode}
-                        onChange={(e) => updateRow(row.id, "pinCode", e.target.value)}
+                        onChange={(e) => updateRow(row.id, "pinCode", sanitizePinId(e.target.value))}
                         disabled={!isEditing}
                         placeholder="e.g., 36800-37000"
+                        inputMode="numeric"
+                        pattern="[0-9-]*"
                         className="bg-white border-slate-300 text-slate-900 text-xs disabled:bg-slate-100 disabled:cursor-not-allowed"
                       />
                     </td>
                     <td className="px-3 py-3">
                       <Input
                         value={row.pinQuantity}
-                        onChange={(e) => updateRow(row.id, "pinQuantity", e.target.value)}
+                        onChange={(e) => updateRow(row.id, "pinQuantity", sanitizeInt(e.target.value))}
                         disabled={!isEditing}
                         placeholder="Qty"
                         type="number"
+                        inputMode="numeric"
                         className="bg-white border-slate-300 text-slate-900 text-xs disabled:bg-slate-100 disabled:cursor-not-allowed"
                       />
                     </td>
                     <td className="px-3 py-3">
                       <Input
                         value={row.workTime}
-                        onChange={(e) => updateRow(row.id, "workTime", e.target.value)}
+                        onChange={(e) => updateRow(row.id, "workTime", sanitizeInt(e.target.value))}
                         disabled={!isEditing}
                         placeholder="Minutes"
                         type="number"
+                        inputMode="numeric"
                         className="bg-white border-slate-300 text-slate-900 text-xs disabled:bg-slate-100 disabled:cursor-not-allowed"
                       />
                     </td>

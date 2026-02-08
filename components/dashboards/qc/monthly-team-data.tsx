@@ -22,6 +22,7 @@ interface TimeSheetDetail {
 interface UserDaySubmission {
   date: string
   username: string
+  userId?: string
   totalPins: number
   totalTime: number
   averageHours: number
@@ -76,7 +77,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
       setLoadError("")
       const { data: rows, error } = await supabase
         .from("time_sheets")
-        .select("user_name,work_date,pin_id,pin_count,duration_minutes,mode,country,notes,status,worked_day")
+        .select("user_id,user_name,work_date,pin_id,pin_count,duration_minutes,mode,country,notes,status,worked_day")
         .eq("work_date", selectedDate)
         .order("user_name", { ascending: true })
 
@@ -108,6 +109,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
         return {
           date: groupRows[0].work_date,
           username: safeUsername,
+          userId: groupRows[0].user_id ?? undefined,
           totalPins,
           totalTime,
           averageHours: totalPins > 0 ? Number((totalTime / totalPins / 60).toFixed(1)) : 0,
@@ -146,7 +148,12 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
     })
   }, [submissions, onSummaryChange])
 
-  const updateStatus = async (submissionDate: string, username: string, status: UserDaySubmission["status"]) => {
+  const updateStatus = async (
+    submissionDate: string,
+    username: string,
+    status: UserDaySubmission["status"],
+    userId?: string,
+  ) => {
     if (!currentUser) return
     const { error } = await supabase
       .from("time_sheets")
@@ -164,6 +171,21 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
       return
     }
 
+    if (userId) {
+      const title = status === "approved" ? "Timesheet approved" : "Timesheet rejected"
+      const message =
+        status === "approved"
+          ? `Timesheet ${submissionDate} đã được duyệt.`
+          : `Timesheet ${submissionDate} đã bị từ chối.`
+      await supabase.from("notifications").insert({
+        user_id: userId,
+        title,
+        message,
+        event_type: status,
+        work_date: submissionDate,
+      })
+    }
+
     setSubmissions(
       submissions.map((s) =>
         s.date === submissionDate && s.username === username ? { ...s, status } : s,
@@ -171,12 +193,12 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
     )
   }
 
-  const handleApprove = (submissionDate: string, username: string) => {
-    void updateStatus(submissionDate, username, "approved")
+  const handleApprove = (submissionDate: string, username: string, userId?: string) => {
+    void updateStatus(submissionDate, username, "approved", userId)
   }
 
-  const handleReject = (submissionDate: string, username: string) => {
-    void updateStatus(submissionDate, username, "rejected")
+  const handleReject = (submissionDate: string, username: string, userId?: string) => {
+    void updateStatus(submissionDate, username, "rejected", userId)
   }
 
   const handleRightClick = (e: React.MouseEvent, idx: number) => {
@@ -324,7 +346,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleApprove(submission.date, submission.username)
+                                  handleApprove(submission.date, submission.username, submission.userId)
                                 }}
                                 className="px-3 py-1 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
                               >
@@ -334,7 +356,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleReject(submission.date, submission.username)
+                                  handleReject(submission.date, submission.username, submission.userId)
                                 }}
                                 className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
                               >

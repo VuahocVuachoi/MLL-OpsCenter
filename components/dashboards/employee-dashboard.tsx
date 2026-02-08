@@ -43,6 +43,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
     }
   }, [supabase, user?.id])
 
+
   return (
     <main className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
@@ -71,7 +72,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
                   <p className="text-xs text-muted-foreground mt-1">Data synced from Google Sheets</p>
                 </div>
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-4 items-center">
                 <div className="bg-gradient-to-br from-primary/20 to-pink-500/20 border border-primary/30 rounded-xl p-4">
                   <p className="text-xs text-muted-foreground mb-1">Annual Leave</p>
                   <p className="text-2xl font-bold text-primary">18</p>
@@ -154,6 +155,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
           </Tabs>
         </motion.div>
       </div>
+
     </main>
   )
 }
