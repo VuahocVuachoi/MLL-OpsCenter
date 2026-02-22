@@ -46,6 +46,7 @@ export function TimeSheetsTab() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [dailySubmissions, setDailySubmissions] = useState<DailySubmission[]>([])
   const [isLoadingRows, setIsLoadingRows] = useState(false)
+  const [dragFill, setDragFill] = useState<{ field: keyof TimeSheetRow; value: string } | null>(null)
 
   const usernamePrefix = useMemo(() => {
     if (!currentUser) return ""
@@ -152,6 +153,12 @@ export function TimeSheetsTab() {
       localStorage.setItem(key, Date.now().toString())
     }
   }, [currentUser])
+
+  useEffect(() => {
+    const handleMouseUp = () => setDragFill(null)
+    window.addEventListener("mouseup", handleMouseUp)
+    return () => window.removeEventListener("mouseup", handleMouseUp)
+  }, [])
 
   useEffect(() => {
     if (!usernamePrefix) return
@@ -297,6 +304,16 @@ export function TimeSheetsTab() {
     setRows(rows.map((row) => (row.id === id ? { ...row, [field]: value } : row)))
   }
 
+  const startDragFill = (field: keyof TimeSheetRow, value: string) => {
+    if (!isEditing) return
+    setDragFill({ field, value })
+  }
+
+  const handleDragFillEnter = (rowId: string) => {
+    if (!dragFill) return
+    updateRow(rowId, dragFill.field, dragFill.value)
+  }
+
   const sanitizePinId = (value: string) => value.replace(/[^0-9-]/g, "")
   const sanitizeInt = (value: string) => value.replace(/[^0-9]/g, "")
 
@@ -304,13 +321,31 @@ export function TimeSheetsTab() {
     setRows(rows.filter((row) => row.id !== id))
   }
 
+  const clearAllRows = () => {
+    setRows([
+      {
+        id: Date.now().toString(),
+        username: usernamePrefix,
+        pinCode: "",
+        pinQuantity: "",
+        workTime: "",
+        jobType: "",
+        country: "",
+        notes: "",
+      },
+    ])
+  }
+
   const handlePasteData = () => {
-    const lines = pasteContent.trim().split("\n")
+    const lines = pasteContent
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
     const newRows: TimeSheetRow[] = []
 
     lines.forEach((line, idx) => {
       const cells = line.split("\t")
-      if (cells.length >= 4) {
+      if (cells.length >= 3) {
         newRows.push({
           id: Date.now().toString() + idx,
           username: usernamePrefix || "",
@@ -330,7 +365,7 @@ export function TimeSheetsTab() {
       setPasteContent("")
       alert(`Successfully imported ${newRows.length} rows from Google Sheets`)
     } else {
-      alert("No valid data found. Make sure to copy tab-separated data from Google Sheets.")
+      alert("No valid data found. Make sure to copy 3+ tab-separated columns from Google Sheets.")
     }
   }
 
@@ -490,7 +525,17 @@ export function TimeSheetsTab() {
                   <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-24">Số lượng</th>
                   <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-24">Thời gian (phút)</th>
                   <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-40">Ghi chú</th>
-                  <th className="px-3 py-3 text-center font-semibold text-slate-700 w-12">Xoá</th>
+                  <th className="px-3 py-3 text-center font-semibold text-slate-700 w-12">
+                    <button
+                      type="button"
+                      onClick={clearAllRows}
+                      disabled={!isEditing}
+                      className="text-slate-700 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Xoá tất cả dữ liệu"
+                    >
+                      Xoá
+                    </button>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -506,7 +551,10 @@ export function TimeSheetsTab() {
                         className="bg-white border-slate-300 text-slate-900 text-xs disabled:bg-slate-100 disabled:cursor-not-allowed"
                       />
                     </td>
-                    <td className="px-3 py-3">
+                    <td
+                      className={`px-3 py-3 relative group ${dragFill?.field === "jobType" ? "bg-blue-50" : ""}`}
+                      onMouseEnter={() => handleDragFillEnter(row.id)}
+                    >
                       <Select
                         value={row.jobType}
                         onValueChange={(value) => updateRow(row.id, "jobType", value)}
@@ -523,8 +571,19 @@ export function TimeSheetsTab() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {row.jobType && isEditing && (
+                        <button
+                          type="button"
+                          onMouseDown={() => startDragFill("jobType", row.jobType)}
+                          className="absolute right-2 bottom-2 h-2 w-2 rounded-full bg-slate-400 opacity-0 group-hover:opacity-100 hover:bg-blue-600 transition-opacity"
+                          title="Kéo để fill"
+                        />
+                      )}
                     </td>
-                    <td className="px-3 py-3">
+                    <td
+                      className={`px-3 py-3 relative group ${dragFill?.field === "country" ? "bg-blue-50" : ""}`}
+                      onMouseEnter={() => handleDragFillEnter(row.id)}
+                    >
                       <Select
                         value={row.country}
                         onValueChange={(value) => updateRow(row.id, "country", value)}
@@ -541,6 +600,14 @@ export function TimeSheetsTab() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {row.country && isEditing && (
+                        <button
+                          type="button"
+                          onMouseDown={() => startDragFill("country", row.country)}
+                          className="absolute right-2 bottom-2 h-2 w-2 rounded-full bg-slate-400 opacity-0 group-hover:opacity-100 hover:bg-blue-600 transition-opacity"
+                          title="Kéo để fill"
+                        />
+                      )}
                     </td>
                     <td className="px-3 py-3">
                       <Input
@@ -701,14 +768,14 @@ export function TimeSheetsTab() {
             </div>
 
             <p className="text-sm text-slate-600 mb-4">
-              Sao chép các hàng từ Google Sheets (bao gồm các cột: PIN ID, Số lượng, Thời gian (phút), Ghi chú) và dán vào đây:
+              Sao chép các hàng từ Google Sheets (cột: PIN ID, Số lượng, Thời gian (phút), Ghi chú - tuỳ chọn) và dán vào đây:
             </p>
 
             <Textarea
               value={pasteContent}
               onChange={(e) => setPasteContent(e.target.value)}
               placeholder="Paste your data here..."
-              className="w-full h-48 mb-6 p-4 border border-slate-300 rounded-lg font-mono text-xs"
+              className="w-full h-48 mb-6 p-4 border border-slate-300 rounded-lg font-mono text-xs !text-black placeholder:text-slate-400"
             />
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">

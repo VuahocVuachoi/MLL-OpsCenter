@@ -56,6 +56,13 @@ export function LeaveRequestTab() {
     reader.readAsDataURL(file)
   }
 
+  const handleSignatureReset = async () => {
+    if (!currentUser?.id) return
+    setSignatureData(null)
+    setSignatureFileName("")
+    await supabase.from("profiles").update({ signature_data: null }).eq("id", currentUser.id)
+  }
+
   const handleSubmit = async () => {
     setErrorMessage("")
     setSubmitMessage("")
@@ -186,6 +193,14 @@ export function LeaveRequestTab() {
                       <p className="text-xs text-gray-400">{signatureFileName || "signature"}</p>
                     </div>
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleSignatureReset}
+                    className="border-white/20 text-white hover:bg-white/10"
+                  >
+                    Tải lại chữ ký
+                  </Button>
                 </div>
               ) : (
                 <Input type="file" accept="image/*" onChange={handleSignatureChange} className="bg-white/5 border-white/10 text-white" />
