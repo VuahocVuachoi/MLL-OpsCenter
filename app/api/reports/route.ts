@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Thiếu mô tả lỗi." }, { status: 400 })
     }
 
-    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID
+    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || process.env.GOOGLE_SERVICE_ACCOUNT_DRIVE_FOLDER_ID
     const sheetId = process.env.GOOGLE_SHEETS_ID
     const sheetTab = process.env.GOOGLE_SHEETS_TAB || "Sheet1"
 

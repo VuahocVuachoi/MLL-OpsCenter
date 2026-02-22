@@ -92,8 +92,6 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
     return `${year}-${month}-${day}`
   }
 
-  const demoDate = getDateString(new Date())
-
   const getAttendanceStatus = (dateStr: string) => {
     return attendanceMap[dateStr] || null
   }
@@ -181,7 +179,8 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
                 const isCurrentMonth = date.getMonth() === currentMonth.getMonth()
                 const isWknd = isWeekend(date)
                 const holiday = isHoliday(dateStr)
-                const attendance = getAttendanceStatus(dateStr) || (dateStr === demoDate ? "C" : null)
+                const todayStr = getDateString(new Date())
+                const attendance = getAttendanceStatus(dateStr) || (dateStr < todayStr ? "OFF" : null)
                 const statusConfig = attendance ? STATUS_CONFIG[attendance as keyof typeof STATUS_CONFIG] : null
 
                 return (

@@ -11,6 +11,7 @@ create table if not exists public.profiles (
   account_name text not null default '',
   last_login_at timestamp with time zone,
   last_seen_at timestamp with time zone,
+  signature_data text,
   leave_balance numeric(6, 2) not null default 0,
   annual_leave_total integer not null default 12,
   annual_leave_remaining integer not null default 12,
@@ -73,6 +74,7 @@ alter table public.profiles
   add column if not exists username text not null default '',
   add column if not exists last_login_at timestamp with time zone,
   add column if not exists last_seen_at timestamp with time zone,
+  add column if not exists signature_data text,
   add column if not exists annual_leave_total integer not null default 12,
   add column if not exists annual_leave_remaining integer not null default 12;
 
