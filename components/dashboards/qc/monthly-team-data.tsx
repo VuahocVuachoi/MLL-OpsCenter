@@ -46,6 +46,9 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
   const [showCommentModal, setShowCommentModal] = useState<boolean>(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [loadError, setLoadError] = useState("")
+  const [rejectSelectionsByKey, setRejectSelectionsByKey] = useState<Record<string, Record<number, boolean>>>({})
+  const [rejectCommentsByKey, setRejectCommentsByKey] = useState<Record<string, string>>({})
+  const [rejectErrorsByKey, setRejectErrorsByKey] = useState<Record<string, string>>({})
   const safeSubmissions = Array.isArray(submissions) ? submissions.filter(Boolean) : []
   const data = safeSubmissions.flatMap((submission, index) =>
     (submission.details ?? []).filter(Boolean).map((detail, detailIndex) => ({
@@ -153,6 +156,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
     username: string,
     status: UserDaySubmission["status"],
     userId?: string,
+    rejectPayload?: { comment: string; items: TimeSheetDetail[] },
   ) => {
     if (!currentUser) return
     const { error } = await supabase
@@ -173,10 +177,22 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
 
     if (userId) {
       const title = status === "approved" ? "Timesheet approved" : "Timesheet rejected"
-      const message =
+      let message =
         status === "approved"
           ? `Timesheet ${submissionDate} đã được duyệt.`
           : `Timesheet ${submissionDate} đã bị từ chối.`
+      if (status === "rejected" && rejectPayload) {
+        const itemsText =
+          rejectPayload.items.length > 0
+            ? rejectPayload.items
+                .map(
+                  (item) =>
+                    `- ${item.jobType || "N/A"} | ${item.country || "N/A"} | ${item.pinCode || "N/A"} | ${item.quantity || "0"} pin | ${item.workTime || "0"} phút`,
+                )
+                .join("\n")
+            : "- Không có mục cụ thể"
+        message = `Timesheet ${submissionDate} đã bị từ chối.\nLý do: ${rejectPayload.comment}\nMục không hợp lệ:\n${itemsText}`
+      }
       await supabase.from("notifications").insert({
         user_id: userId,
         title,
@@ -197,8 +213,29 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
     void updateStatus(submissionDate, username, "approved", userId)
   }
 
-  const handleReject = (submissionDate: string, username: string, userId?: string) => {
-    void updateStatus(submissionDate, username, "rejected", userId)
+  const handleInlineRejectSubmit = async (submission: UserDaySubmission) => {
+    const key = `${submission.date}-${submission.username}`
+    const selections = rejectSelectionsByKey[key] || {}
+    const picked = Object.entries(selections)
+      .filter(([, isRejected]) => isRejected)
+      .map(([idx]) => Number.parseInt(idx, 10))
+    const comment = (rejectCommentsByKey[key] || "").trim()
+
+    if (!comment) {
+      setRejectErrorsByKey((prev) => ({ ...prev, [key]: "Vui lòng nhập lý do reject." }))
+      return
+    }
+    if (picked.length === 0) {
+      setRejectErrorsByKey((prev) => ({ ...prev, [key]: "Vui lòng chọn ít nhất 1 mục không hợp lệ." }))
+      return
+    }
+
+    const items = picked.map((idx) => submission.details?.[idx]).filter(Boolean) as TimeSheetDetail[]
+    await updateStatus(submission.date, submission.username, "rejected", submission.userId, {
+      comment,
+      items,
+    })
+    setRejectErrorsByKey((prev) => ({ ...prev, [key]: "" }))
   }
 
   const handleRightClick = (e: React.MouseEvent, idx: number) => {
@@ -356,7 +393,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleReject(submission.date, submission.username, submission.userId)
+                                  setExpandedId(`${submission.date}-${submission.username}`)
                                 }}
                                 className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
                               >
@@ -407,6 +444,9 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Job Type</th>
                               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Quốc gia</th>
                               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Ghi chú</th>
+                              {submission.status === "pending" && (
+                                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700">Reject</th>
+                              )}
                             </tr>
                           </thead>
                           <tbody>
@@ -426,11 +466,63 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                                   </span>
                                 </td>
                                 <td className="px-4 py-3 text-slate-600 text-xs">{detail.notes}</td>
+                                {submission.status === "pending" && (
+                                  <td className="px-4 py-3 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={
+                                        !!rejectSelectionsByKey[`${submission.date}-${submission.username}`]?.[idx]
+                                      }
+                                      onChange={(e) =>
+                                        setRejectSelectionsByKey((prev) => {
+                                          const key = `${submission.date}-${submission.username}`
+                                          const current = prev[key] || {}
+                                          return {
+                                            ...prev,
+                                            [key]: { ...current, [idx]: e.target.checked },
+                                          }
+                                        })
+                                      }
+                                      className="h-4 w-4 accent-red-500"
+                                      title="Không hợp lệ"
+                                    />
+                                  </td>
+                                )}
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </div>
+
+                      {submission.status === "pending" && (
+                        <div className="p-4 border-t border-slate-200 bg-white">
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Lý do reject</label>
+                          <textarea
+                            value={rejectCommentsByKey[`${submission.date}-${submission.username}`] || ""}
+                            onChange={(e) =>
+                              setRejectCommentsByKey((prev) => ({
+                                ...prev,
+                                [`${submission.date}-${submission.username}`]: e.target.value,
+                              }))
+                            }
+                            placeholder="Nhập lý do..."
+                            className="w-full px-4 py-3 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500 min-h-20"
+                          />
+                          {rejectErrorsByKey[`${submission.date}-${submission.username}`] && (
+                            <p className="text-sm text-red-600 mt-2">
+                              {rejectErrorsByKey[`${submission.date}-${submission.username}`]}
+                            </p>
+                          )}
+                          <div className="flex justify-end mt-4">
+                            <button
+                              onClick={() => handleInlineRejectSubmit(submission)}
+                              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium"
+                            >
+                              Hoàn thành Reject
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </motion.div>
                   )}
                 </motion.div>
@@ -553,6 +645,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
           </motion.div>
         </div>
       )}
+
     </motion.div>
   )
 }

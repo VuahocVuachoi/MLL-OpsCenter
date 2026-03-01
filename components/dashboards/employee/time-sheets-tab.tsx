@@ -47,6 +47,14 @@ export function TimeSheetsTab() {
   const [dailySubmissions, setDailySubmissions] = useState<DailySubmission[]>([])
   const [isLoadingRows, setIsLoadingRows] = useState(false)
   const [dragFill, setDragFill] = useState<{ field: keyof TimeSheetRow; value: string } | null>(null)
+  const [rejectNotice, setRejectNotice] = useState("")
+  const [rejectReason, setRejectReason] = useState("")
+  const [rejectedItems, setRejectedItems] = useState<
+    { jobType: string; country: string; pinCode: string; quantity: string; workTime: string }[]
+  >([])
+
+  const totalPins = useMemo(() => rows.reduce((sum, row) => sum + (Number(row.pinQuantity) || 0), 0), [rows])
+  const totalMinutes = useMemo(() => rows.reduce((sum, row) => sum + (Number(row.workTime) || 0), 0), [rows])
 
   const usernamePrefix = useMemo(() => {
     if (!currentUser) return ""
@@ -199,6 +207,62 @@ export function TimeSheetsTab() {
     }
     void loadStatus()
   }, [currentUser, selectedDate, supabase])
+
+  useEffect(() => {
+    const loadRejectNotice = async () => {
+      if (!currentUser) return
+      const { data } = await supabase
+        .from("notifications")
+        .select("message,created_at")
+        .eq("user_id", currentUser.id)
+        .eq("event_type", "rejected")
+        .eq("work_date", selectedDate)
+        .order("created_at", { ascending: false })
+        .limit(1)
+      const message = data?.[0]?.message || ""
+      setRejectNotice(message)
+      const parsed = parseRejectMessage(message)
+      setRejectReason(parsed.reason)
+      setRejectedItems(parsed.items)
+    }
+    void loadRejectNotice()
+  }, [currentUser, selectedDate, supabase])
+
+  const parseRejectMessage = (message: string) => {
+    if (!message) return { reason: "", items: [] as { jobType: string; country: string; pinCode: string; quantity: string; workTime: string }[] }
+    const reasonMatch = message.match(/Lý do:\s*(.+)/i)
+    const reason = reasonMatch?.[1]?.trim() || ""
+    const itemsIndex = message.indexOf("Mục không hợp lệ:")
+    if (itemsIndex === -1) return { reason, items: [] }
+    const itemsBlock = message.slice(itemsIndex).split("\n").slice(1)
+    const items = itemsBlock
+      .map((line) => line.replace(/^-+\s*/, "").trim())
+      .filter(Boolean)
+      .map((line) => {
+        const parts = line.split("|").map((part) => part.trim())
+        return {
+          jobType: parts[0] || "",
+          country: parts[1] || "",
+          pinCode: parts[2] || "",
+          quantity: parts[3]?.replace(/pin/i, "").trim() || "",
+          workTime: parts[4]?.replace(/phút/i, "").trim() || "",
+        }
+      })
+      .filter((item) => item.jobType || item.country || item.pinCode)
+    return { reason, items }
+  }
+
+  const isRejectedRow = (row: TimeSheetRow) => {
+    if (!rejectedItems.length) return false
+    return rejectedItems.some((item) => {
+      const jobOk = item.jobType ? item.jobType === (row.jobType || "N/A") : true
+      const countryOk = item.country ? item.country === (row.country || "N/A") : true
+      const pinOk = item.pinCode ? item.pinCode === (row.pinCode || "N/A") : true
+      const qtyOk = item.quantity ? item.quantity === (row.pinQuantity || "0") : true
+      const timeOk = item.workTime ? item.workTime === (row.workTime || "0") : true
+      return jobOk && countryOk && pinOk && qtyOk && timeOk
+    })
+  }
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -540,7 +604,12 @@ export function TimeSheetsTab() {
               </thead>
               <tbody>
                 {rows.map((row, idx) => (
-                  <tr key={row.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                  <tr
+                    key={row.id}
+                    className={`border-b border-slate-200 transition-colors ${
+                      isRejectedRow(row) ? "bg-red-50 hover:bg-red-100" : "hover:bg-slate-50"
+                    }`}
+                  >
                     <td className="px-3 py-3 text-slate-700 font-medium">{idx + 1}</td>
                     <td className="px-3 py-3">
                       <Input
@@ -667,6 +736,16 @@ export function TimeSheetsTab() {
           </div>
         </Card>
 
+        {submissionStatus === "rejected" && (rejectReason || rejectNotice) && (
+          <div className="mt-6 rounded-2xl border border-red-200 bg-gradient-to-r from-red-50 to-rose-50 p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-red-600 text-xs">!</span>
+              <p className="text-sm font-semibold text-red-700">Lý do reject:</p>
+              <p className="text-sm text-red-700 whitespace-pre-wrap">{rejectReason || rejectNotice}</p>
+            </div>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex gap-4 justify-center mt-6">
           <button
@@ -709,7 +788,7 @@ export function TimeSheetsTab() {
               <div className="relative z-10">
                 <p className="text-blue-100 text-sm font-medium mb-2">Tổng số Pin</p>
                 <p className="text-4xl font-bold text-white mb-1">
-                  {rows.reduce((sum, row) => sum + Number.parseInt(row.pinQuantity || "0"), 0)}
+                  {totalPins}
                 </p>
                 <p className="text-blue-100 text-xs">Tổng số pin</p>
               </div>
@@ -721,7 +800,7 @@ export function TimeSheetsTab() {
               <div className="relative z-10">
                 <p className="text-cyan-100 text-sm font-medium mb-2">Tổng thời gian</p>
                 <p className="text-4xl font-bold text-white mb-1">
-                  {rows.reduce((sum, row) => sum + Number.parseInt(row.workTime || "0"), 0)}
+                  {totalMinutes}
                 </p>
                 <p className="text-cyan-100 text-xs">Phút làm việc</p>
               </div>
@@ -734,9 +813,7 @@ export function TimeSheetsTab() {
                 <p className="text-indigo-100 text-sm font-medium mb-2">Giờ/Pin</p>
                 <p className="text-4xl font-bold text-white mb-1">
                   {(() => {
-                    const totalPins = rows.reduce((sum, row) => sum + Number.parseInt(row.pinQuantity || "0"), 0)
-                    const totalMinutes = rows.reduce((sum, row) => sum + Number.parseInt(row.workTime || "0"), 0)
-                    return totalPins > 0 ? Number((totalMinutes / totalPins / 60).toFixed(1)) : 0
+                    return totalPins > 0 ? (totalMinutes / totalPins / 60).toFixed(1) : "0.0"
                   })()}
                 </p>
                 <p className="text-indigo-100 text-xs">Giờ/Pin</p>
