@@ -30,10 +30,10 @@ export async function POST(request: Request) {
     const reportDate = String(formData.get("reportDate") || new Date().toISOString().split("T")[0])
 
     if (!file) {
-      return Response.json({ error: "Thiếu file video." }, { status: 400 })
+      return Response.json({ error: "Missing video file." }, { status: 400 })
     }
     if (!description.trim()) {
-      return Response.json({ error: "Thiếu mô tả lỗi." }, { status: 400 })
+      return Response.json({ error: "Missing issue description." }, { status: 400 })
     }
 
     const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || process.env.GOOGLE_SERVICE_ACCOUNT_DRIVE_FOLDER_ID
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const sheetTab = process.env.GOOGLE_SHEETS_TAB || "Sheet1"
 
     if (!folderId || !sheetId) {
-      return Response.json({ error: "Thiếu cấu hình Google Drive/Sheets." }, { status: 500 })
+      return Response.json({ error: "Google Drive/Sheets configuration is missing." }, { status: 500 })
     }
 
     const auth = getServiceAccountAuth()

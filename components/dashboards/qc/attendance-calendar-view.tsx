@@ -8,24 +8,24 @@ import { supabaseBrowser } from "@/lib/supabase-browser"
 
 // Vietnamese holidays 2025
 const VIETNAMESE_HOLIDAYS = [
-  { date: "2025-01-01", name: "Tết Dương lịch" },
-  { date: "2025-01-29", name: "Tết Âm lịch" },
-  { date: "2025-01-30", name: "Tết Âm lịch" },
-  { date: "2025-01-31", name: "Tết Âm lịch" },
-  { date: "2025-02-01", name: "Tết Âm lịch" },
-  { date: "2025-02-02", name: "Tết Âm lịch" },
-  { date: "2025-02-03", name: "Tết Âm lịch" },
-  { date: "2025-04-18", name: "Giỗ Tổ Hùng Vương" },
-  { date: "2025-04-30", name: "Ngày Giải phóng" },
-  { date: "2025-05-01", name: "Quốc tế Lao động" },
-  { date: "2025-09-02", name: "Ngày Quốc khánh" },
+  { date: "2025-01-01", name: "New Year's Day" },
+  { date: "2025-01-29", name: "Lunar New Year" },
+  { date: "2025-01-30", name: "Lunar New Year" },
+  { date: "2025-01-31", name: "Lunar New Year" },
+  { date: "2025-02-01", name: "Lunar New Year" },
+  { date: "2025-02-02", name: "Lunar New Year" },
+  { date: "2025-02-03", name: "Lunar New Year" },
+  { date: "2025-04-18", name: "Hung Kings' Commemoration Day" },
+  { date: "2025-04-30", name: "Reunification Day" },
+  { date: "2025-05-01", name: "International Labor Day" },
+  { date: "2025-09-02", name: "National Day" },
 ]
 
 const STATUS_CONFIG = {
-  C: { label: "Đi làm", color: "bg-green-500", lightColor: "bg-green-100", textColor: "text-green-700" },
-  OFF: { label: "Không đi", color: "bg-gray-500", lightColor: "bg-gray-100", textColor: "text-gray-700" },
+  C: { label: "Working", color: "bg-green-500", lightColor: "bg-green-100", textColor: "text-green-700" },
+  OFF: { label: "Off", color: "bg-gray-500", lightColor: "bg-gray-100", textColor: "text-gray-700" },
   HOLIDAY: {
-    label: "Ngày lễ",
+    label: "Holiday",
     color: "bg-purple-500",
     lightColor: "bg-purple-100",
     textColor: "text-purple-700",
@@ -166,9 +166,9 @@ export function AttendanceCalendarView() {
         <Card className="bg-white border border-slate-200 rounded-2xl p-6">
           {/* Header */}
           <div className="mb-8">
-            <h3 className="text-xl font-bold text-slate-900">Lịch Chấm Công Nhân viên</h3>
+            <h3 className="text-xl font-bold text-slate-900">Employee Attendance Calendar</h3>
             <p className="text-sm text-slate-600 mt-1">
-              Xem chi tiết lịch công việc - Nhấn vào ngày để xem danh sách nhân viên
+              View work calendar details - Click a day to see employee list
             </p>
           </div>
 
@@ -245,13 +245,13 @@ export function AttendanceCalendarView() {
                       {/* Attendance Count Badge */}
                       {attendanceCount > 0 && (
                         <div className="mt-1.5 px-2 py-1 rounded-full text-xs font-semibold bg-blue-200 text-blue-700">
-                          {attendanceCount} người
+                          {attendanceCount} people
                         </div>
                       )}
 
                       {/* Holiday Indicator */}
                       {holiday && (
-                        <div className="mt-0.5 px-2 py-0.5 rounded text-xs font-bold text-purple-700">Lễ</div>
+                        <div className="mt-0.5 px-2 py-0.5 rounded text-xs font-bold text-purple-700">Holiday</div>
                       )}
                     </button>
                   </motion.div>
@@ -262,7 +262,7 @@ export function AttendanceCalendarView() {
 
           {/* Legend */}
           <div className="mt-8 pt-6 border-t border-slate-200">
-            <p className="text-sm font-semibold text-slate-900 mb-4">Chú thích trạng thái:</p>
+            <p className="text-sm font-semibold text-slate-900 mb-4">Status legend:</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {Object.entries(STATUS_CONFIG).map(([key, config]) => (
                 <div key={key} className="flex items-center gap-2">
@@ -281,10 +281,10 @@ export function AttendanceCalendarView() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-xl font-bold text-slate-900">
-                  Danh sách nhân viên - {selectedDateInfo?.toLocaleDateString("vi-VN")}
+                  Employee list - {selectedDateInfo?.toLocaleDateString("en-GB")}
                 </h3>
                 <p className="text-sm text-slate-600 mt-1">
-                  {selectedDateCounts.worked} đi làm • {selectedDateCounts.off} không đi
+                  {selectedDateCounts.worked} working • {selectedDateCounts.off} off
                 </p>
               </div>
               <button

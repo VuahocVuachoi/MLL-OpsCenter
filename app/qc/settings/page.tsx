@@ -30,7 +30,7 @@ export default function QCSettingsPage() {
     <div className="min-h-screen">
       <Navbar user={user} />
       <main className="max-w-4xl mx-auto p-6">
-        <h1 className="text-2xl font-semibold text-white mb-6">Cài đặt tài khoản</h1>
+        <h1 className="text-2xl font-semibold text-white mb-6">Account settings</h1>
         <AccountSettings user={user} />
       </main>
     </div>

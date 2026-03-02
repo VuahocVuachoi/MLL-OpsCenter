@@ -118,8 +118,8 @@ export function Navbar({ user }: NavbarProps) {
           <div className="w-full max-w-md bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-xl font-semibold text-white">Thông báo</h3>
-                <p className="text-xs text-slate-400 mt-1">Duyệt / từ chối timesheet</p>
+                <h3 className="text-xl font-semibold text-white">Notifications</h3>
+                <p className="text-xs text-slate-400 mt-1">Timesheet approve/reject</p>
               </div>
               <button
                 type="button"
@@ -132,9 +132,9 @@ export function Navbar({ user }: NavbarProps) {
 
             <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
               {isLoadingNotifications ? (
-                <p className="text-sm text-slate-400">Đang tải thông báo...</p>
+                <p className="text-sm text-slate-400">Loading notifications...</p>
               ) : notifications.length === 0 ? (
-                <p className="text-sm text-slate-400">Chưa có thông báo.</p>
+                <p className="text-sm text-slate-400">No notifications yet.</p>
               ) : (
                 notifications.map((item) => (
                   <div key={item.id} className="rounded-xl border border-slate-700 bg-slate-900/60 p-4">
@@ -154,7 +154,7 @@ export function Navbar({ user }: NavbarProps) {
                     </div>
                     <p className="text-xs text-slate-300 mt-2">{item.message}</p>
                     <div className="text-[11px] text-slate-500 mt-2">
-                      {item.work_date ? `Ngày ${item.work_date}` : ""} •{" "}
+                      {item.work_date ? `Date ${item.work_date}` : ""} •{" "}
                       {new Date(item.created_at).toLocaleString("vi-VN")}
                     </div>
                   </div>
@@ -168,7 +168,7 @@ export function Navbar({ user }: NavbarProps) {
                 onClick={() => setShowNotifications(false)}
                 className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-semibold"
               >
-                Đóng
+                Close
               </button>
             </div>
           </div>

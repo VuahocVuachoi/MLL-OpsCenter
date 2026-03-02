@@ -94,8 +94,10 @@ export function TimeSheetsTab() {
 
   const countryOptions = [
     "Angola",
+    "Australia",
     "Bolivia",
     "Brazil",
+    "Bhutan",
     "Burundi",
     "Cambodia",
     "Cameroon",
@@ -103,7 +105,7 @@ export function TimeSheetsTab() {
     "Colombia",
     "Congo",
     "Costa Rica",
-    "Côte d'Ivoire",
+    "Cote d'Ivoire",
     "Cuba",
     "Dominican Republic",
     "DR Congo",
@@ -139,7 +141,7 @@ export function TimeSheetsTab() {
     "Uganda",
     "Venezuela",
     "United States - Hawaii",
-    "Viet Nam",
+    "Vietnam",
     "Yemen",
     "Zambia",
     "Zimbabwe",
@@ -230,9 +232,9 @@ export function TimeSheetsTab() {
 
   const parseRejectMessage = (message: string) => {
     if (!message) return { reason: "", items: [] as { jobType: string; country: string; pinCode: string; quantity: string; workTime: string }[] }
-    const reasonMatch = message.match(/Lý do:\s*(.+)/i)
+    const reasonMatch = message.match(/Reason:\s*(.+)/i)
     const reason = reasonMatch?.[1]?.trim() || ""
-    const itemsIndex = message.indexOf("Mục không hợp lệ:")
+    const itemsIndex = message.indexOf("Invalid items:")
     if (itemsIndex === -1) return { reason, items: [] }
     const itemsBlock = message.slice(itemsIndex).split("\n").slice(1)
     const items = itemsBlock
@@ -245,7 +247,7 @@ export function TimeSheetsTab() {
           country: parts[1] || "",
           pinCode: parts[2] || "",
           quantity: parts[3]?.replace(/pin/i, "").trim() || "",
-          workTime: parts[4]?.replace(/phút/i, "").trim() || "",
+          workTime: parts[4]?.replace(/minutes?/i, "").trim() || "",
         }
       })
       .filter((item) => item.jobType || item.country || item.pinCode)
@@ -365,7 +367,20 @@ export function TimeSheetsTab() {
   }
 
   const updateRow = (id: string, field: keyof TimeSheetRow, value: string) => {
-    setRows(rows.map((row) => (row.id === id ? { ...row, [field]: value } : row)))
+    setRows(
+      rows.map((row) => {
+        if (row.id !== id) return row
+        const next = { ...row, [field]: value }
+        if (field === "pinCode") {
+          const hasSinglePin = value.trim() !== "" && !value.includes("-")
+          const hasQuantity = (next.pinQuantity || "").trim() !== ""
+          if (hasSinglePin && !hasQuantity) {
+            next.pinQuantity = "1"
+          }
+        }
+        return next
+      }),
+    )
   }
 
   const startDragFill = (field: keyof TimeSheetRow, value: string) => {
@@ -451,11 +466,11 @@ export function TimeSheetsTab() {
 
   const submit = async () => {
     if (!currentUser) {
-      setSubmitError("Không tìm thấy thông tin user. Vui lòng đăng nhập lại.")
+      setSubmitError("User info not found. Please log in again.")
       return
     }
     if (!rows.length) {
-      setSubmitError("Vui lòng nhập ít nhất 1 dòng.")
+      setSubmitError("Please enter at least 1 row.")
       return
     }
 
@@ -469,7 +484,7 @@ export function TimeSheetsTab() {
       .eq("work_date", selectedDate)
 
     if (deleteError) {
-      setSubmitError(deleteError.message || "Không thể cập nhật dữ liệu. Vui lòng thử lại.")
+      setSubmitError(deleteError.message || "Unable to update data. Please try again.")
       setIsSubmitting(false)
       return
     }
@@ -495,7 +510,7 @@ export function TimeSheetsTab() {
 
     const { error: insertError } = await supabase.from("time_sheets").insert(payload)
     if (insertError) {
-      setSubmitError(insertError.message || "Không thể lưu dữ liệu. Vui lòng thử lại.")
+      setSubmitError(insertError.message || "Unable to save data. Please try again.")
       setIsSubmitting(false)
       return
     }
@@ -550,10 +565,10 @@ export function TimeSheetsTab() {
               <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <span className="text-2xl">⏰</span> Time Sheets - {new Date(selectedDate).toLocaleDateString("vi-VN", { year: "numeric", month: "2-digit", day: "2-digit" })}
               </h3>
-              {hasSubmitted && !isEditing && <p className="text-sm text-blue-600 mt-2 font-medium">✓ Dữ liệu đã lưu</p>}
-              {submissionStatus === "approved" && <p className="text-sm text-green-600 mt-2 font-medium">✓ Đã duyệt</p>}
-              {submissionStatus === "rejected" && <p className="text-sm text-red-600 mt-2 font-medium">✕ Bị từ chối</p>}
-              {submissionStatus === "pending" && <p className="text-sm text-amber-600 mt-2 font-medium">⏳ Chờ duyệt</p>}
+              {hasSubmitted && !isEditing && <p className="text-sm text-blue-600 mt-2 font-medium">✓ Data saved</p>}
+              {submissionStatus === "approved" && <p className="text-sm text-green-600 mt-2 font-medium">✓ Approved</p>}
+              {submissionStatus === "rejected" && <p className="text-sm text-red-600 mt-2 font-medium">✕ Rejected</p>}
+              {submissionStatus === "pending" && <p className="text-sm text-amber-600 mt-2 font-medium">⏳ Pending review</p>}
             </div>
             <div className="flex gap-3">
               <button
@@ -562,14 +577,14 @@ export function TimeSheetsTab() {
                 className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Upload className="w-4 h-4" />
-                Dán từ Sheets
+                Paste from Sheets
               </button>
               <button
                 onClick={() => setShowEditModal(true)}
                 className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-lg font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Calendar className="w-4 h-4" />
-                Xem lịch sử
+                View history
               </button>
             </div>
           </div>
@@ -583,21 +598,21 @@ export function TimeSheetsTab() {
                 <tr className="bg-blue-50 border-b border-blue-200">
                   <th className="px-3 py-3 text-left font-semibold text-slate-700 w-8">STT</th>
                   <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-32">Username</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-32">Loại công việc</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-24">Quốc gia</th>
+                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-32">Job Type</th>
+                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-24">Country</th>
                   <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-28">PIN ID</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-24">Số lượng</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-24">Thời gian (phút)</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-40">Ghi chú</th>
+                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-24">Quantity</th>
+                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-24">Time (minutes)</th>
+                  <th className="px-3 py-3 text-left font-semibold text-slate-700 min-w-40">Notes</th>
                   <th className="px-3 py-3 text-center font-semibold text-slate-700 w-12">
                     <button
                       type="button"
                       onClick={clearAllRows}
                       disabled={!isEditing}
                       className="text-slate-700 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Xoá tất cả dữ liệu"
+                      title="Clear all data"
                     >
-                      Xoá
+                      Clear
                     </button>
                   </th>
                 </tr>
@@ -630,7 +645,7 @@ export function TimeSheetsTab() {
                         disabled={!isEditing}
                       >
                         <SelectTrigger className="bg-white border-slate-300 text-slate-900 text-xs disabled:bg-slate-100 disabled:cursor-not-allowed">
-                          <SelectValue placeholder="Chọn công việc" />
+                          <SelectValue placeholder="Select job" />
                         </SelectTrigger>
                         <SelectContent className="animate-none transition-none">
                           {modeOptions.map((option) => (
@@ -645,7 +660,7 @@ export function TimeSheetsTab() {
                           type="button"
                           onMouseDown={() => startDragFill("jobType", row.jobType)}
                           className="absolute right-2 bottom-2 h-2 w-2 rounded-full bg-slate-400 opacity-0 group-hover:opacity-100 hover:bg-blue-600 transition-opacity"
-                          title="Kéo để fill"
+                          title="Drag to fill"
                         />
                       )}
                     </td>
@@ -659,7 +674,7 @@ export function TimeSheetsTab() {
                         disabled={!isEditing}
                       >
                         <SelectTrigger className="bg-white border-slate-300 text-slate-900 text-xs disabled:bg-slate-100 disabled:cursor-not-allowed">
-                          <SelectValue placeholder="Chọn quốc gia" />
+                          <SelectValue placeholder="Select country" />
                         </SelectTrigger>
                         <SelectContent className="animate-none transition-none">
                           {countryOptions.map((option) => (
@@ -674,7 +689,7 @@ export function TimeSheetsTab() {
                           type="button"
                           onMouseDown={() => startDragFill("country", row.country)}
                           className="absolute right-2 bottom-2 h-2 w-2 rounded-full bg-slate-400 opacity-0 group-hover:opacity-100 hover:bg-blue-600 transition-opacity"
-                          title="Kéo để fill"
+                          title="Drag to fill"
                         />
                       )}
                     </td>
@@ -740,7 +755,7 @@ export function TimeSheetsTab() {
           <div className="mt-6 rounded-2xl border border-red-200 bg-gradient-to-r from-red-50 to-rose-50 p-4 shadow-sm">
             <div className="flex items-start gap-3">
               <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-red-600 text-xs">!</span>
-              <p className="text-sm font-semibold text-red-700">Lý do reject:</p>
+              <p className="text-sm font-semibold text-red-700">Reject reason:</p>
               <p className="text-sm text-red-700 whitespace-pre-wrap">{rejectReason || rejectNotice}</p>
             </div>
           </div>
@@ -754,7 +769,7 @@ export function TimeSheetsTab() {
             className="px-6 py-2 border-2 border-slate-400 text-slate-700 rounded-full font-medium hover:bg-slate-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Plus className="w-4 h-4" />
-            THÊM DÒNG
+            ADD ROW
           </button>
           {submissionStatus !== "approved" && (
             <button
@@ -763,7 +778,7 @@ export function TimeSheetsTab() {
               className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <Save className="w-4 h-4" />
-              {isSubmitting ? "Đang lưu..." : !isEditing ? "CHỈNH SỬA" : hasSubmitted ? "LƯU LẠI" : "SUBMIT"}
+              {isSubmitting ? "Saving..." : !isEditing ? "EDIT" : hasSubmitted ? "SAVE" : "SUBMIT"}
             </button>
           )}
         </div>
@@ -776,8 +791,8 @@ export function TimeSheetsTab() {
               <span className="text-2xl">📊</span>
             </div>
             <div>
-              <h4 className="font-semibold text-lg">Tổng kết hôm nay</h4>
-              <p className="text-sm text-slate-400">Thống kê hoạt động của ngày</p>
+              <h4 className="font-semibold text-lg">Today summary</h4>
+              <p className="text-sm text-slate-400">Daily activity summary</p>
             </div>
           </div>
 
@@ -786,11 +801,11 @@ export function TimeSheetsTab() {
             <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 cursor-default hover:shadow-xl transition-all duration-300">
               <div className="absolute -right-8 -top-8 w-24 h-24 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform" />
               <div className="relative z-10">
-                <p className="text-blue-100 text-sm font-medium mb-2">Tổng số Pin</p>
+                <p className="text-blue-100 text-sm font-medium mb-2">Total pins</p>
                 <p className="text-4xl font-bold text-white mb-1">
                   {totalPins}
                 </p>
-                <p className="text-blue-100 text-xs">Tổng số pin</p>
+                <p className="text-blue-100 text-xs">Total pins</p>
               </div>
             </div>
 
@@ -798,11 +813,11 @@ export function TimeSheetsTab() {
             <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-500 to-cyan-600 p-6 cursor-default hover:shadow-xl transition-all duration-300">
               <div className="absolute -right-8 -top-8 w-24 h-24 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform" />
               <div className="relative z-10">
-                <p className="text-cyan-100 text-sm font-medium mb-2">Tổng thời gian</p>
+                <p className="text-cyan-100 text-sm font-medium mb-2">Total time</p>
                 <p className="text-4xl font-bold text-white mb-1">
                   {totalMinutes}
                 </p>
-                <p className="text-cyan-100 text-xs">Phút làm việc</p>
+                <p className="text-cyan-100 text-xs">Working minutes</p>
               </div>
             </div>
 
@@ -810,13 +825,13 @@ export function TimeSheetsTab() {
             <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 cursor-default hover:shadow-xl transition-all duration-300">
               <div className="absolute -right-8 -top-8 w-24 h-24 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform" />
               <div className="relative z-10">
-                <p className="text-indigo-100 text-sm font-medium mb-2">Giờ/Pin</p>
+                <p className="text-indigo-100 text-sm font-medium mb-2">Hours/Pin</p>
                 <p className="text-4xl font-bold text-white mb-1">
                   {(() => {
                     return totalPins > 0 ? (totalMinutes / totalPins / 60).toFixed(1) : "0.0"
                   })()}
                 </p>
-                <p className="text-indigo-100 text-xs">Giờ/Pin</p>
+                <p className="text-indigo-100 text-xs">Hours/Pin</p>
               </div>
             </div>
           </div>
@@ -834,7 +849,7 @@ export function TimeSheetsTab() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <Upload className="w-6 h-6 text-blue-600" />
-                <h3 className="text-lg font-semibold text-slate-900">Dán dữ liệu từ Google Sheets</h3>
+                <h3 className="text-lg font-semibold text-slate-900">Paste data from Google Sheets</h3>
               </div>
               <button
                 onClick={() => setShowPasteModal(false)}
@@ -845,7 +860,7 @@ export function TimeSheetsTab() {
             </div>
 
             <p className="text-sm text-slate-600 mb-4">
-              Sao chép các hàng từ Google Sheets (cột: PIN ID, Số lượng, Thời gian (phút), Ghi chú - tuỳ chọn) và dán vào đây:
+              Copy rows from Google Sheets (columns: PIN ID, Quantity, Time (minutes), Notes - optional) and paste here:
             </p>
 
             <Textarea
@@ -856,13 +871,13 @@ export function TimeSheetsTab() {
             />
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <p className="text-sm text-blue-900 font-medium mb-2">💡 Cách sử dụng:</p>
+              <p className="text-sm text-blue-900 font-medium mb-2">💡 How to use:</p>
               <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                <li>Mở Google Sheets của bạn</li>
-                <li>Chọn các hàng dữ liệu (tất cả các cột cần thiết)</li>
-                <li>Nhấn Ctrl+C (hoặc Cmd+C) để sao chép</li>
-                <li>Dán vào hộp dữ liệu bên trên</li>
-                <li>Nhấn nút "Nhập dữ liệu"</li>
+                <li>Open your Google Sheets</li>
+                <li>Select the data rows (all required columns)</li>
+                <li>Press Ctrl+C (or Cmd+C) to copy</li>
+                <li>Paste into the box above</li>
+                <li>Click "Import data"</li>
               </ol>
             </div>
 
@@ -871,7 +886,7 @@ export function TimeSheetsTab() {
                 onClick={() => setShowPasteModal(false)}
                 className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
               >
-                HỦY
+                CANCEL
               </button>
               <button
                 onClick={handlePasteData}
@@ -879,7 +894,7 @@ export function TimeSheetsTab() {
                 className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <Upload className="w-4 h-4" />
-                NHẬP DỮ LIỆU
+                IMPORT DATA
               </button>
             </div>
           </motion.div>
@@ -899,8 +914,8 @@ export function TimeSheetsTab() {
               <div className="flex items-center gap-3">
                 <Calendar className="w-6 h-6 text-emerald-600" />
                 <div>
-                  <h3 className="text-xl font-semibold text-slate-900">Lịch sử chấm công</h3>
-                  <p className="text-sm text-slate-600">Xem trạng thái phê duyệt từ MLQC QC</p>
+                  <h3 className="text-xl font-semibold text-slate-900">Timesheet history</h3>
+                  <p className="text-sm text-slate-600">View approval status from MLQC</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -908,7 +923,7 @@ export function TimeSheetsTab() {
                   onClick={handleBackToToday}
                   className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
                 >
-                  Hôm nay
+                  Today
                 </button>
                 <button
                   onClick={() => setShowEditModal(false)}
@@ -942,26 +957,26 @@ export function TimeSheetsTab() {
                               day: "2-digit",
                             })}
                           </p>
-                          <p className="text-sm text-slate-600 mt-1 font-medium">Ngày chấm công</p>
+                          <p className="text-sm text-slate-600 mt-1 font-medium">Work date</p>
                         </div>
 
                         {/* Center - Stats (Always visible) */}
                         <div className="grid grid-cols-3 gap-3">
                           <div className="bg-white rounded-xl p-4 border border-blue-200 shadow-sm group-hover:border-blue-400 transition-colors">
-                            <p className="text-xs text-slate-600 font-medium mb-2">Tổng số Pin</p>
+                            <p className="text-xs text-slate-600 font-medium mb-2">Total pins</p>
                             <p className="text-2xl font-bold text-blue-600">
                               {submission.totalPins}
                             </p>
                           </div>
                           <div className="bg-white rounded-xl p-4 border border-cyan-200 shadow-sm group-hover:border-cyan-400 transition-colors">
-                            <p className="text-xs text-slate-600 font-medium mb-2">Tổng thời gian</p>
+                            <p className="text-xs text-slate-600 font-medium mb-2">Total time</p>
                             <p className="text-2xl font-bold text-cyan-600">
                               {submission.totalMinutes}
                             </p>
-                            <p className="text-xs text-slate-500">phút</p>
+                            <p className="text-xs text-slate-500">minutes</p>
                           </div>
                           <div className="bg-white rounded-xl p-4 border border-indigo-200 shadow-sm group-hover:border-indigo-400 transition-colors">
-                            <p className="text-xs text-slate-600 font-medium mb-2">Giờ/Pin</p>
+                            <p className="text-xs text-slate-600 font-medium mb-2">Hours/Pin</p>
                             <p className="text-2xl font-bold text-indigo-600">
                               {submission.averageHours}
                             </p>
@@ -975,7 +990,7 @@ export function TimeSheetsTab() {
                               <div className="w-14 h-14 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-1">
                                 <Calendar className="w-7 h-7 text-yellow-600" />
                               </div>
-                              <p className="font-semibold text-slate-900 text-xs">Chờ duyệt</p>
+                              <p className="font-semibold text-slate-900 text-xs">Pending</p>
                               <p className="text-xs text-slate-500">Awaiting MLQC</p>
                             </div>
                           )}
@@ -1013,7 +1028,7 @@ export function TimeSheetsTab() {
                 onClick={() => setShowEditModal(false)}
                 className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-colors"
               >
-                Đóng
+                Close
               </button>
             </div>
           </motion.div>

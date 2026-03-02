@@ -62,7 +62,7 @@ export function ReportsModal({ isOpen, onClose, user }: ReportsModalProps) {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}))
-      setErrorMessage(payload.error || "Không thể gửi report. Vui lòng thử lại.")
+      setErrorMessage(payload.error || "Unable to submit report. Please try again.")
       setIsSubmitting(false)
       return
     }
@@ -110,12 +110,12 @@ export function ReportsModal({ isOpen, onClose, user }: ReportsModalProps) {
           <form onSubmit={handleSubmit} className="space-y-6">
             <Card className="bg-white/5 border border-white/10 rounded-xl p-4 text-slate-200 text-sm">
               <p>
-                Người gửi: <span className="font-semibold">{username}</span>
+                Submitted by: <span className="font-semibold">{username}</span>
               </p>
             </Card>
 
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-white">Loại report</label>
+              <label className="block text-sm font-semibold text-white">Report type</label>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -144,7 +144,7 @@ export function ReportsModal({ isOpen, onClose, user }: ReportsModalProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-white">Ngày report</label>
+                <label className="block text-sm font-semibold text-white">Report date</label>
                 <input
                   type="date"
                   value={reportDate}

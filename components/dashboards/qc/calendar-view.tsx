@@ -7,14 +7,14 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 
 const mockEmployeeData = {
   "2025-11-23": [
-    { name: "Trần Thị Staff", id: "PIN001", shift: "Morning" },
-    { name: "Nguyễn Văn A", id: "PIN002", shift: "Morning" },
-    { name: "Phạm Thị B", id: "PIN003", shift: "Afternoon" },
-    { name: "Hoàng Văn C", id: "PIN004", shift: "Afternoon" },
+    { name: "Tran Staff", id: "PIN001", shift: "Morning" },
+    { name: "Nguyen A", id: "PIN002", shift: "Morning" },
+    { name: "Pham B", id: "PIN003", shift: "Afternoon" },
+    { name: "Hoang C", id: "PIN004", shift: "Afternoon" },
   ],
   "2025-11-24": [
-    { name: "Trần Thị Staff", id: "PIN001", shift: "Morning" },
-    { name: "Lý Thị D", id: "PIN005", shift: "Morning" },
+    { name: "Tran Staff", id: "PIN001", shift: "Morning" },
+    { name: "Ly D", id: "PIN005", shift: "Morning" },
   ],
 }
 
@@ -122,7 +122,7 @@ export function CalendarView() {
       >
         <Card className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 h-full">
           <h3 className="font-semibold text-slate-900 mb-4">
-            Danh sách nhân viên - {new Date(selectedDate).toLocaleDateString("vi-VN")}
+            Employee list - {new Date(selectedDate).toLocaleDateString("en-GB")}
           </h3>
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {employees.length > 0 ? (
@@ -154,7 +154,7 @@ export function CalendarView() {
               ))
             ) : (
               <div className="text-center py-8">
-                <p className="text-slate-500">Không có nhân viên nào trong ngày này</p>
+                <p className="text-slate-500">No employees for this day</p>
               </div>
             )}
           </div>

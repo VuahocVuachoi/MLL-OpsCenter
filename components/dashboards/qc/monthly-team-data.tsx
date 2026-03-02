@@ -85,7 +85,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
         .order("user_name", { ascending: true })
 
       if (error) {
-        setLoadError(error.message || "Không thể tải dữ liệu.")
+        setLoadError(error.message || "Unable to load data.")
         return
       }
 
@@ -171,7 +171,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
       .eq("user_name", username)
 
     if (error) {
-      setLoadError(error.message || "Không thể cập nhật trạng thái.")
+      setLoadError(error.message || "Unable to update status.")
       return
     }
 
@@ -179,19 +179,19 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
       const title = status === "approved" ? "Timesheet approved" : "Timesheet rejected"
       let message =
         status === "approved"
-          ? `Timesheet ${submissionDate} đã được duyệt.`
-          : `Timesheet ${submissionDate} đã bị từ chối.`
+          ? `Timesheet ${submissionDate} has been approved.`
+          : `Timesheet ${submissionDate} has been rejected.`
       if (status === "rejected" && rejectPayload) {
         const itemsText =
           rejectPayload.items.length > 0
             ? rejectPayload.items
                 .map(
                   (item) =>
-                    `- ${item.jobType || "N/A"} | ${item.country || "N/A"} | ${item.pinCode || "N/A"} | ${item.quantity || "0"} pin | ${item.workTime || "0"} phút`,
+                    `- ${item.jobType || "N/A"} | ${item.country || "N/A"} | ${item.pinCode || "N/A"} | ${item.quantity || "0"} pin | ${item.workTime || "0"} minutes`,
                 )
                 .join("\n")
-            : "- Không có mục cụ thể"
-        message = `Timesheet ${submissionDate} đã bị từ chối.\nLý do: ${rejectPayload.comment}\nMục không hợp lệ:\n${itemsText}`
+            : "- No specific items"
+        message = `Timesheet ${submissionDate} has been rejected.\nReason: ${rejectPayload.comment}\nInvalid items:\n${itemsText}`
       }
       await supabase.from("notifications").insert({
         user_id: userId,
@@ -222,11 +222,11 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
     const comment = (rejectCommentsByKey[key] || "").trim()
 
     if (!comment) {
-      setRejectErrorsByKey((prev) => ({ ...prev, [key]: "Vui lòng nhập lý do reject." }))
+      setRejectErrorsByKey((prev) => ({ ...prev, [key]: "Please enter a reject reason." }))
       return
     }
     if (picked.length === 0) {
-      setRejectErrorsByKey((prev) => ({ ...prev, [key]: "Vui lòng chọn ít nhất 1 mục không hợp lệ." }))
+      setRejectErrorsByKey((prev) => ({ ...prev, [key]: "Please select at least one invalid item." }))
       return
     }
 
@@ -288,7 +288,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
         <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-2xl p-6">
           <div className="flex items-end gap-4 flex-wrap">
             <div className="flex-1 min-w-64">
-              <label className="block text-sm font-semibold text-slate-900 mb-2">Chọn ngày/tháng/năm</label>
+              <label className="block text-sm font-semibold text-slate-900 mb-2">Select date</label>
               <Input
                 type="date"
                 value={selectedDate}
@@ -297,10 +297,10 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
               />
             </div>
             <div className="min-w-48">
-              <label className="block text-sm font-semibold text-slate-900 mb-2">Tối thiểu số PIN</label>
+              <label className="block text-sm font-semibold text-slate-900 mb-2">Minimum pins</label>
               <Input
                 type="number"
-                placeholder="VD: 20"
+                placeholder="e.g., 20"
                 value={minPinFilter}
                 onChange={(e) => setMinPinFilter(e.target.value)}
                 min="0"
@@ -308,7 +308,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
               />
             </div>
             <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
-              Tìm kiếm
+              Search
             </button>
           </div>
         </Card>
@@ -361,16 +361,16 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                       {/* Stats */}
                       <div className="grid grid-cols-3 gap-4 flex-1">
                         <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                          <p className="text-xs text-slate-600 font-medium">Tổng số Pin</p>
+                          <p className="text-xs text-slate-600 font-medium">Total pins</p>
                           <p className="text-2xl font-bold text-blue-600">{submission.totalPins}</p>
                         </div>
                         <div className="bg-cyan-50 rounded-lg p-3 border border-cyan-200">
-                          <p className="text-xs text-slate-600 font-medium">Tổng thời gian</p>
+                          <p className="text-xs text-slate-600 font-medium">Total time</p>
                           <p className="text-2xl font-bold text-cyan-600">{submission.totalTime}</p>
-                          <p className="text-xs text-slate-500">phút</p>
+                          <p className="text-xs text-slate-500">minutes</p>
                         </div>
                         <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
-                          <p className="text-xs text-slate-600 font-medium">Giờ/Pin</p>
+                          <p className="text-xs text-slate-600 font-medium">Hours/Pin</p>
                           <p className="text-2xl font-bold text-indigo-600">{submission.averageHours}</p>
                         </div>
                       </div>
@@ -439,11 +439,11 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                           <thead>
                             <tr className="bg-slate-100 border-b border-slate-200">
                               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">PIN Code</th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Số lượng</th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Thời gian (phút)</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Quantity</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Time (minutes)</th>
                               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Job Type</th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Quốc gia</th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Ghi chú</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Country</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700">Notes</th>
                               {submission.status === "pending" && (
                                 <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700">Reject</th>
                               )}
@@ -484,7 +484,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                                         })
                                       }
                                       className="h-4 w-4 accent-red-500"
-                                      title="Không hợp lệ"
+                                      title="Invalid"
                                     />
                                   </td>
                                 )}
@@ -496,7 +496,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
 
                       {submission.status === "pending" && (
                         <div className="p-4 border-t border-slate-200 bg-white">
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Lý do reject</label>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Reject reason</label>
                           <textarea
                             value={rejectCommentsByKey[`${submission.date}-${submission.username}`] || ""}
                             onChange={(e) =>
@@ -505,7 +505,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                                 [`${submission.date}-${submission.username}`]: e.target.value,
                               }))
                             }
-                            placeholder="Nhập lý do..."
+                            placeholder="Enter reason..."
                             className="w-full px-4 py-3 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500 min-h-20"
                           />
                           {rejectErrorsByKey[`${submission.date}-${submission.username}`] && (
@@ -518,7 +518,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                               onClick={() => handleInlineRejectSubmit(submission)}
                               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium"
                             >
-                              Hoàn thành Reject
+                              Complete Reject
                             </button>
                           </div>
                         </div>
@@ -530,7 +530,7 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
             })
           ) : (
             <Card className="bg-slate-50 border border-slate-200 rounded-2xl p-12 text-center">
-              <p className="text-slate-600 font-medium">Không có dữ liệu cho ngày được chọn</p>
+              <p className="text-slate-600 font-medium">No data for the selected date</p>
             </Card>
           )}
         </div>
@@ -544,10 +544,10 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 w-12">STT</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">User Name</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Pin ID</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Thời gian (giờ)</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Loại công việc</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Quốc gia</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Ghi chú</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Time (hours)</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Job Type</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Country</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Notes</th>
                 </tr>
               </thead>
               <tbody>
@@ -621,11 +621,11 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white rounded-2xl p-8 max-w-md w-full mx-4"
           >
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Thêm yêu cầu xử lý</h3>
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Add processing request</h3>
             <textarea
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Mô tả vấn đề hoặc yêu cầu xử lý lại data..."
+              placeholder="Describe the issue or request reprocessing..."
               className="w-full px-4 py-3 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-24"
             />
             <div className="flex gap-3 mt-6">
@@ -633,13 +633,13 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
                 onClick={() => setShowCommentModal(false)}
                 className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50"
               >
-                Hủy
+                Cancel
               </button>
               <button
                 onClick={saveComment}
                 className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
               >
-                Lưu
+                Save
               </button>
             </div>
           </motion.div>

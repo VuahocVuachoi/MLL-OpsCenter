@@ -67,15 +67,15 @@ export function LeaveRequestTab() {
     setErrorMessage("")
     setSubmitMessage("")
     if (!currentUser) {
-      setErrorMessage("Vui lòng đăng nhập lại.")
+      setErrorMessage("Please log in again.")
       return
     }
     if (!fromDate || !toDate || !reason.trim()) {
-      setErrorMessage("Vui lòng điền đầy đủ From Date, To Date và Reason.")
+      setErrorMessage("Please fill in From Date, To Date, and Reason.")
       return
     }
     if (!signatureData) {
-      setErrorMessage("Vui lòng tải chữ ký trước khi gửi.")
+      setErrorMessage("Please upload your signature before submitting.")
       return
     }
     setIsSubmitting(true)
@@ -95,11 +95,11 @@ export function LeaveRequestTab() {
     })
     const payload = await response.json().catch(() => ({}))
     if (!response.ok) {
-      setErrorMessage(payload.error || "Không thể tạo đơn nghỉ phép.")
+      setErrorMessage(payload.error || "Unable to create leave request.")
       setIsSubmitting(false)
       return
     }
-    setSubmitMessage("Đã tạo đơn nghỉ phép và tải lên Drive.")
+    setSubmitMessage("Leave request created and uploaded to Drive.")
     setIsSubmitting(false)
   }
 
@@ -183,13 +183,13 @@ export function LeaveRequestTab() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Chữ ký</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Signature</label>
               {signatureData ? (
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <img src={signatureData} alt="signature" className="h-14 rounded bg-white/10" />
                     <div>
-                      <p className="text-sm text-white font-semibold">Đã lưu chữ ký</p>
+                      <p className="text-sm text-white font-semibold">Signature saved</p>
                       <p className="text-xs text-gray-400">{signatureFileName || "signature"}</p>
                     </div>
                   </div>
@@ -199,7 +199,7 @@ export function LeaveRequestTab() {
                     onClick={handleSignatureReset}
                     className="border-white/20 text-white hover:bg-white/10"
                   >
-                    Tải lại chữ ký
+                    Re-upload signature
                   </Button>
                 </div>
               ) : (
@@ -213,7 +213,7 @@ export function LeaveRequestTab() {
               disabled={isSubmitting}
               className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold disabled:opacity-60"
             >
-              {isSubmitting ? "Đang gửi..." : "Submit Request"}
+              {isSubmitting ? "Submitting..." : "Submit Request"}
             </Button>
           </div>
         </Card>

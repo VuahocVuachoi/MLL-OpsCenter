@@ -29,19 +29,19 @@ export function AccountSettings({ user }: AccountSettingsProps) {
     setSuccess("")
 
     if (!user.email) {
-      setError("Không tìm thấy email tài khoản.")
+      setError("Account email not found.")
       return
     }
     if (!currentPassword || !newPassword) {
-      setError("Vui lòng nhập đầy đủ mật khẩu.")
+      setError("Please enter all password fields.")
       return
     }
     if (newPassword !== confirmPassword) {
-      setError("Mật khẩu mới không khớp.")
+      setError("New passwords do not match.")
       return
     }
     if (newPassword.length < 6) {
-      setError("Mật khẩu mới phải có ít nhất 6 ký tự.")
+      setError("New password must be at least 6 characters.")
       return
     }
 
@@ -51,14 +51,14 @@ export function AccountSettings({ user }: AccountSettingsProps) {
       password: currentPassword,
     })
     if (signInError) {
-      setError("Mật khẩu hiện tại không đúng.")
+      setError("Current password is incorrect.")
       setLoading(false)
       return
     }
 
     const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
     if (updateError) {
-      setError("Không thể đổi mật khẩu. Vui lòng thử lại.")
+      setError("Unable to change password. Please try again.")
       setLoading(false)
       return
     }
@@ -67,7 +67,7 @@ export function AccountSettings({ user }: AccountSettingsProps) {
     setCurrentPassword("")
     setNewPassword("")
     setConfirmPassword("")
-    setSuccess("Đổi mật khẩu thành công.")
+    setSuccess("Password changed successfully.")
 
     localStorage.removeItem("user")
     localStorage.removeItem(`login_started_at_${user.id}`)
@@ -89,16 +89,16 @@ export function AccountSettings({ user }: AccountSettingsProps) {
           <div>
             <p className="text-lg font-semibold text-white">{user.name}</p>
             <p className="text-sm text-gray-400">{user.email}</p>
-            <p className="text-xs text-gray-500 mt-1">Avatar sẽ cập nhật sau.</p>
+            <p className="text-xs text-gray-500 mt-1">Avatar will update later.</p>
           </div>
         </div>
       </Card>
 
       <Card className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">Đổi mật khẩu</h2>
+        <h2 className="text-lg font-semibold text-white mb-4">Change password</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-2">Mật khẩu hiện tại</label>
+            <label className="block text-sm font-medium text-gray-200 mb-2">Current password</label>
             <Input
               type="password"
               value={currentPassword}
@@ -107,7 +107,7 @@ export function AccountSettings({ user }: AccountSettingsProps) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-2">Mật khẩu mới</label>
+            <label className="block text-sm font-medium text-gray-200 mb-2">New password</label>
             <Input
               type="password"
               value={newPassword}
@@ -116,7 +116,7 @@ export function AccountSettings({ user }: AccountSettingsProps) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-2">Xác nhận mật khẩu mới</label>
+            <label className="block text-sm font-medium text-gray-200 mb-2">Confirm new password</label>
             <Input
               type="password"
               value={confirmPassword}
@@ -127,7 +127,7 @@ export function AccountSettings({ user }: AccountSettingsProps) {
           {error && <p className="text-sm text-red-400">{error}</p>}
           {success && <p className="text-sm text-green-400">{success}</p>}
           <Button type="submit" disabled={loading} className="bg-cyan-500 hover:bg-cyan-600 text-white">
-            {loading ? "Đang lưu..." : "Lưu thay đổi"}
+            {loading ? "Saving..." : "Save changes"}
           </Button>
         </form>
       </Card>

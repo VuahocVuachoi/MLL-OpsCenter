@@ -13,28 +13,28 @@ interface AttendanceCalendarProps {
 
 // Vietnamese holidays 2025
 const VIETNAMESE_HOLIDAYS = [
-  { date: "2025-01-01", name: "Tết Dương lịch" },
-  { date: "2025-01-29", name: "Tết Âm lịch" },
-  { date: "2025-01-30", name: "Tết Âm lịch" },
-  { date: "2025-01-31", name: "Tết Âm lịch" },
-  { date: "2025-02-01", name: "Tết Âm lịch" },
-  { date: "2025-02-02", name: "Tết Âm lịch" },
-  { date: "2025-02-03", name: "Tết Âm lịch" },
-  { date: "2025-04-18", name: "Giỗ Tổ Hùng Vương" },
-  { date: "2025-04-30", name: "Ngày Giải phóng" },
-  { date: "2025-05-01", name: "Quốc tế Lao động" },
-  { date: "2025-09-02", name: "Ngày Quốc khánh" },
+  { date: "2025-01-01", name: "New Year's Day" },
+  { date: "2025-01-29", name: "Lunar New Year" },
+  { date: "2025-01-30", name: "Lunar New Year" },
+  { date: "2025-01-31", name: "Lunar New Year" },
+  { date: "2025-02-01", name: "Lunar New Year" },
+  { date: "2025-02-02", name: "Lunar New Year" },
+  { date: "2025-02-03", name: "Lunar New Year" },
+  { date: "2025-04-18", name: "Hung Kings' Commemoration Day" },
+  { date: "2025-04-30", name: "Reunification Day" },
+  { date: "2025-05-01", name: "International Labor Day" },
+  { date: "2025-09-02", name: "National Day" },
 ]
 
 const STATUS_CONFIG = {
-  C: { label: "Đi làm", color: "bg-green-500", lightColor: "bg-green-100", textColor: "text-green-700" },
-  S: { label: "Ca trực", color: "bg-yellow-500", lightColor: "bg-yellow-100", textColor: "text-yellow-700" },
-  HC: { label: "Nghỉ bù", color: "bg-blue-500", lightColor: "bg-blue-100", textColor: "text-blue-700" },
-  OFF: { label: "Không đi", color: "bg-gray-500", lightColor: "bg-gray-100", textColor: "text-gray-700" },
-  OT: { label: "Thêm giờ", color: "bg-red-500", lightColor: "bg-red-100", textColor: "text-red-700" },
-  NLB: { label: "Nghỉ phép", color: "bg-pink-500", lightColor: "bg-pink-100", textColor: "text-pink-700" },
+  C: { label: "Working", color: "bg-green-500", lightColor: "bg-green-100", textColor: "text-green-700" },
+  S: { label: "Shift", color: "bg-yellow-500", lightColor: "bg-yellow-100", textColor: "text-yellow-700" },
+  HC: { label: "Comp day", color: "bg-blue-500", lightColor: "bg-blue-100", textColor: "text-blue-700" },
+  OFF: { label: "Off", color: "bg-gray-500", lightColor: "bg-gray-100", textColor: "text-gray-700" },
+  OT: { label: "Overtime", color: "bg-red-500", lightColor: "bg-red-100", textColor: "text-red-700" },
+  NLB: { label: "Leave", color: "bg-pink-500", lightColor: "bg-pink-100", textColor: "text-pink-700" },
   HOLIDAY: {
-    label: "Ngày lễ",
+    label: "Holiday",
     color: "bg-purple-500",
     lightColor: "bg-purple-100",
     textColor: "text-purple-700",
@@ -120,11 +120,10 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
       const monthEnd = new Date(year, month + 1, 0).toISOString().split("T")[0]
       const { data, error } = await supabase
         .from("time_sheets")
-        .select("work_date,worked_day")
+        .select("work_date")
         .eq("user_id", currentUser.id)
         .gte("work_date", monthStart)
         .lte("work_date", monthEnd)
-        .eq("worked_day", true)
       if (error || !data) return
       const mapped: Record<string, string> = {}
       data.forEach((row) => {
@@ -136,7 +135,7 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
   }, [currentUser, currentMonth, supabase])
 
   const days = getDaysInMonth()
-  const monthName = currentMonth.toLocaleString("vi-VN", { month: "long", year: "numeric" })
+  const monthName = currentMonth.toLocaleString("en-GB", { month: "long", year: "numeric" })
 
   return (
     <div className="space-y-6">
@@ -145,9 +144,9 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-xl font-bold text-slate-900">Lịch Công việc</h3>
+              <h3 className="text-xl font-bold text-slate-900">Work Calendar</h3>
               <p className="text-sm text-slate-600 mt-1">
-                Xem toàn bộ ngày đi làm, nghỉ phép, và các ngày lễ của {employeeName}
+                View work days, leave days, and holidays for {employeeName}
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -165,7 +164,7 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
           <div className="space-y-4">
             {/* Weekday Headers */}
             <div className="grid grid-cols-7 gap-2">
-              {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((day) => (
+              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
                 <div key={day} className="h-10 flex items-center justify-center font-semibold text-slate-700 text-sm">
                   {day}
                 </div>
@@ -222,7 +221,7 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
                       {/* Holiday Indicator */}
                       {holiday && (
                         <div className="mt-1 px-2 py-0.5 rounded text-xs font-semibold bg-purple-200 text-purple-700">
-                          Lễ
+                          Holiday
                         </div>
                       )}
                     </div>
@@ -234,7 +233,7 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
 
           {/* Legend */}
           <div className="mt-8 pt-6 border-t border-slate-200">
-            <p className="text-sm font-semibold text-slate-900 mb-4">Chú thích trạng thái:</p>
+            <p className="text-sm font-semibold text-slate-900 mb-4">Status legend:</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {Object.entries(STATUS_CONFIG).map(([key, config]) => (
                 <div key={key} className="flex items-center gap-2">

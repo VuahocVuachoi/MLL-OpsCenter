@@ -94,7 +94,7 @@ export function QCDashboard({ user }: QCDashboardProps) {
                 value="attendance-calendar"
                 className="rounded-lg font-semibold text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-secondary data-[state=active]:to-cyan-400 data-[state=active]:text-white"
               >
-                Lịch Công việc
+                Work Calendar
               </TabsTrigger>
               <TabsTrigger
                 value="work-analytics"

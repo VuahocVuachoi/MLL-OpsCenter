@@ -37,7 +37,7 @@ export default function LoginPage() {
     }
 
     if (!data.user) {
-      setErrorMessage("Không tìm thấy tài khoản sau khi đăng nhập.")
+      setErrorMessage("Account not found after login.")
       setLoading(false)
       return
     }
@@ -59,7 +59,7 @@ export default function LoginPage() {
     const enforcedRole = fallbackRoleMap[email]
 
     if (!profile && !fallbackRole) {
-      setErrorMessage("Tài khoản chưa có quyền truy cập.")
+      setErrorMessage("Your account does not have access.")
       setLoading(false)
       return
     }
@@ -85,7 +85,7 @@ export default function LoginPage() {
         }
 
     if (profileError && profileError.code !== "PGRST116" && !fallbackRole) {
-      setErrorMessage("Không thể tải hồ sơ nhân viên. Vui lòng thử lại.")
+      setErrorMessage("Unable to load employee profile. Please try again.")
       setLoading(false)
       return
     }
@@ -110,7 +110,7 @@ export default function LoginPage() {
 
     const { error: upsertError } = await supabase.from("profiles").upsert(profilePayload)
     if (upsertError) {
-      setErrorMessage("Không thể tạo hồ sơ nhân viên. Vui lòng thử lại.")
+      setErrorMessage("Unable to create employee profile. Please try again.")
       setLoading(false)
       return
     }
@@ -197,7 +197,7 @@ export default function LoginPage() {
                   disabled={loading}
                   className="mt-2 h-12 w-full rounded-full bg-white text-indigo-700 font-semibold hover:bg-white/90"
                 >
-                  {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+                  {loading ? "Signing in..." : "Sign in"}
                 </Button>
                 {errorMessage && <p className="text-sm text-red-200 text-center">{errorMessage}</p>}
               </form>

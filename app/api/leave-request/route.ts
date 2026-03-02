@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     } = payload || {}
 
     if (!employeeName || !fromDate || !toDate || !reason || !signatureData) {
-      return Response.json({ error: "Thiếu thông tin bắt buộc." }, { status: 400 })
+      return Response.json({ error: "Missing required information." }, { status: 400 })
     }
 
     const auth = getServiceAccountAuth()
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
       process.env.GOOGLE_SERVICE_ACCOUNT_DRIVE_FOLDER_ID
 
     if (!folderId) {
-      return Response.json({ error: "Thiếu cấu hình Google Drive folder." }, { status: 500 })
+      return Response.json({ error: "Google Drive folder configuration is missing." }, { status: 500 })
     }
 
     const driveResponse = await drive.files.create({
