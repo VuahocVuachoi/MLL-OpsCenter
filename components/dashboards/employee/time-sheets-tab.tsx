@@ -90,6 +90,7 @@ export function TimeSheetsTab() {
     "Demo task",
     "Re - training",
     "EUDR TK",
+    "Other",
   ]
 
   const countryOptions = [
