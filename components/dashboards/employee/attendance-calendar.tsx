@@ -45,6 +45,7 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
   const supabase = useMemo(() => supabaseBrowser(), [])
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [attendanceMap, setAttendanceMap] = useState<Record<string, string>>({})
+  const [scheduleMap, setScheduleMap] = useState<Record<string, string>>({})
   const [currentUser, setCurrentUser] = useState<User | null>(null)
 
   const isWeekend = (date: Date): boolean => {
@@ -93,7 +94,12 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
   }
 
   const getAttendanceStatus = (dateStr: string) => {
-    return attendanceMap[dateStr] || null
+    // Keep "Working" tied to submitted timesheets.
+    if (attendanceMap[dateStr]) return attendanceMap[dateStr]
+    // Keep explicit schedule statuses (leave/off/holiday/etc.) visible.
+    const scheduled = scheduleMap[dateStr]
+    if (scheduled && scheduled !== "C") return scheduled
+    return null
   }
 
   const previousMonth = () => {
@@ -132,6 +138,31 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
       setAttendanceMap(mapped)
     }
     void loadAttendance()
+  }, [currentUser, currentMonth, supabase])
+
+  useEffect(() => {
+    const loadSchedules = async () => {
+      if (!currentUser) return
+      const year = currentMonth.getFullYear()
+      const month = currentMonth.getMonth()
+      const monthStart = new Date(year, month, 1).toISOString().split("T")[0]
+      const monthEnd = new Date(year, month + 1, 0).toISOString().split("T")[0]
+      const { data, error } = await supabase
+        .from("work_schedules")
+        .select("work_date,status")
+        .eq("user_id", currentUser.id)
+        .gte("work_date", monthStart)
+        .lte("work_date", monthEnd)
+      if (error || !data) return
+      const mapped: Record<string, string> = {}
+      data.forEach((row) => {
+        if (row.status) {
+          mapped[row.work_date] = row.status
+        }
+      })
+      setScheduleMap(mapped)
+    }
+    void loadSchedules()
   }, [currentUser, currentMonth, supabase])
 
   const days = getDaysInMonth()

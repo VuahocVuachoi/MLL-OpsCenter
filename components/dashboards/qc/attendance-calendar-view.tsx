@@ -122,22 +122,32 @@ export function AttendanceCalendarView() {
       const month = currentMonth.getMonth()
       const start = new Date(year, month, 1).toISOString().split("T")[0]
       const end = new Date(year, month + 1, 0).toISOString().split("T")[0]
-      const { data, error } = await supabase
-        .from("time_sheets")
-        .select("work_date,user_name,pin_id,pin_count,duration_minutes,mode,country,notes")
-        .gte("work_date", start)
-        .lte("work_date", end)
+      const pageSize = 1000
+      let from = 0
+      const allRows: { work_date: string; user_name: string }[] = []
 
-      if (error || !data) return
+      while (true) {
+        const { data, error } = await supabase
+          .from("time_sheets")
+          .select("work_date,user_name")
+          .gte("work_date", start)
+          .lte("work_date", end)
+          .order("work_date", { ascending: true })
+          .order("user_name", { ascending: true })
+          .range(from, from + pageSize - 1)
+
+        if (error) return
+        if (!data || data.length === 0) break
+
+        allRows.push(...(data as { work_date: string; user_name: string }[]))
+        if (data.length < pageSize) break
+        from += pageSize
+      }
 
       const mapped: Record<string, Set<string>> = {}
-      data.forEach((row) => {
-        const hasInput = [row.pin_id, row.pin_count, row.duration_minutes, row.mode, row.country, row.notes].some((value) =>
-          String(value ?? "").trim() !== "",
-        )
-        if (!hasInput) return
-        const date = row.work_date as string
-        const name = row.user_name as string
+      allRows.forEach((row) => {
+        const date = row.work_date
+        const name = row.user_name
         if (!mapped[date]) mapped[date] = new Set()
         mapped[date].add(name)
       })

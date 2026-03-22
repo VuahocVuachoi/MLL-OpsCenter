@@ -446,12 +446,6 @@ export function TimeSheetsTab() {
     return parts.join(" ")
   }
 
-  const hasWorkInput = (row: TimeSheetRow) => {
-    return [row.pinCode, row.pinQuantity, row.workTime, row.jobType, row.country, row.notes].some(
-      (value) => (value || "").trim() !== "",
-    )
-  }
-
   const submit = async () => {
     if (!currentUser) {
       setSubmitError("User info not found. Please log in again.")
@@ -477,7 +471,7 @@ export function TimeSheetsTab() {
       return
     }
 
-    const workedDay = rows.some(hasWorkInput)
+    const workedDay = true
     const payload = rows.map((row) => ({
       user_id: currentUser.id,
       user_name: row.username || usernamePrefix,
