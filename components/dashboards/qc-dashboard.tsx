@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Card } from "@/components/ui/card"
@@ -10,7 +10,7 @@ import type { User } from "@/types/user"
 import { AttendanceCalendarView } from "./qc/attendance-calendar-view"
 import { MonthlyTeamData } from "./qc/monthly-team-data"
 import { LeaveRequestTab } from "./qc/leave-request-tab"
-import { AttendanceTracking } from "./qc/attendance-tracking"
+import { TeamScheduleCalendar } from "./qc/team-schedule-calendar"
 import { WorkAnalytics } from "./qc/work-analytics"
 
 interface QCDashboardProps {
@@ -18,20 +18,15 @@ interface QCDashboardProps {
 }
 
 export function QCDashboard({ user }: QCDashboardProps) {
+  const router = useRouter()
   const [team, setTeam] = useState("all")
   const [activeTab, setActiveTab] = useState("attendance-calendar")
-  const [teamSummary, setTeamSummary] = useState({
-    activeToday: 0,
-    totalPins: 0,
-    avgPerformance: 0,
-  })
-  const router = useRouter()
-  const handleSummaryChange = useCallback(
-    (summary: { activeToday: number; totalPins: number; avgPerformance: number }) => {
-      setTeamSummary(summary)
-    },
-    [],
-  )
+
+  const handleLinkClick = (link: string) => {
+    if (link === "Settings") {
+      router.push("/qc/settings")
+    }
+  }
 
   return (
     <main className="min-h-screen p-6">
@@ -58,28 +53,26 @@ export function QCDashboard({ user }: QCDashboardProps) {
             </div>
           </div>
 
-          {activeTab === "team-output" && (
-            <Card className="bg-gradient-to-br from-card to-background-secondary border border-border rounded-xl p-8">
-              <div className="grid md:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-primary/20 to-pink-500/20 border border-primary/30 rounded-xl p-4">
-                  <p className="text-xs text-muted-foreground mb-1">Total Team Members</p>
-                  <p className="text-2xl font-bold text-primary">20</p>
-                </div>
-                <div className="bg-gradient-to-br from-secondary/20 to-cyan-400/20 border border-secondary/30 rounded-xl p-4">
-                  <p className="text-xs text-muted-foreground mb-1">Active Today</p>
-                  <p className="text-2xl font-bold text-secondary">{teamSummary.activeToday}</p>
-                </div>
-                <div className="bg-gradient-to-br from-accent/20 to-lime-400/20 border border-accent/30 rounded-xl p-4">
-                  <p className="text-xs text-muted-foreground mb-1">Total Pins Today</p>
-                  <p className="text-2xl font-bold text-accent">{teamSummary.totalPins.toLocaleString()}</p>
-                </div>
-                <div className="bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 rounded-xl p-4">
-                  <p className="text-xs text-muted-foreground mb-1">Avg Performance</p>
-                  <p className="text-2xl font-bold text-violet-400">{teamSummary.avgPerformance.toFixed(1)}</p>
-                </div>
+          <Card className="bg-gradient-to-br from-card to-background-secondary border border-border rounded-xl p-8">
+            <div className="grid md:grid-cols-4 gap-4">
+              <div className="bg-gradient-to-br from-primary/20 to-pink-500/20 border border-primary/30 rounded-xl p-4">
+                <p className="text-xs text-muted-foreground mb-1">Total Team Members</p>
+                <p className="text-2xl font-bold text-primary">24</p>
               </div>
-            </Card>
-          )}
+              <div className="bg-gradient-to-br from-secondary/20 to-cyan-400/20 border border-secondary/30 rounded-xl p-4">
+                <p className="text-xs text-muted-foreground mb-1">Active Today</p>
+                <p className="text-2xl font-bold text-secondary">18</p>
+              </div>
+              <div className="bg-gradient-to-br from-accent/20 to-lime-400/20 border border-accent/30 rounded-xl p-4">
+                <p className="text-xs text-muted-foreground mb-1">Total Pins Today</p>
+                <p className="text-2xl font-bold text-accent">1,248</p>
+              </div>
+              <div className="bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 rounded-xl p-4">
+                <p className="text-xs text-muted-foreground mb-1">Avg Performance</p>
+                <p className="text-2xl font-bold text-violet-400">94%</p>
+              </div>
+            </div>
+          </Card>
         </motion.div>
 
         {/* Tabs */}
@@ -137,35 +130,26 @@ export function QCDashboard({ user }: QCDashboardProps) {
             </TabsContent>
 
             <TabsContent value="team-output" className="mt-0">
-              <MonthlyTeamData onSummaryChange={handleSummaryChange} />
+              <MonthlyTeamData />
             </TabsContent>
 
             <TabsContent value="attendance" className="mt-0">
-              <AttendanceTracking />
+              <TeamScheduleCalendar />
             </TabsContent>
 
             <TabsContent value="links" className="mt-0">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                  { label: "QC Dashboard", href: "#" },
-                  { label: "Analytics", href: "#" },
-                  { label: "Tool Report", href: "#" },
-                  { label: "Documentation", href: "#" },
-                  { label: "Tools", href: "#" },
-                  { label: "Settings", href: "/qc/settings" },
-                ].map((link, idx) => (
-                  <Card
+                {["QC Dashboard", "Analytics", "Reports", "Documentation", "Tools", "Settings"].map((link, idx) => (
+                  <button
                     key={idx}
-                    className="bg-gradient-to-br from-card to-background-secondary border border-border rounded-xl p-6 hover:shadow-2xl cursor-pointer transition-all hover:border-primary/50"
-                    onClick={() => {
-                      if (link.href !== "#") {
-                        router.push(link.href)
-                      }
-                    }}
+                    onClick={() => handleLinkClick(link)}
+                    className="w-full h-full text-left"
                   >
-                    <p className="text-foreground font-medium">{link.label}</p>
-                    <p className="text-sm text-muted-foreground mt-1">Access {link.label.toLowerCase()}</p>
-                  </Card>
+                    <Card className="bg-gradient-to-br from-card to-background-secondary border border-border rounded-xl p-6 hover:shadow-2xl cursor-pointer transition-all hover:border-primary/50">
+                      <p className="text-foreground font-medium">{link}</p>
+                      <p className="text-sm text-muted-foreground mt-1">Access {link.toLowerCase()}</p>
+                    </Card>
+                  </button>
                 ))}
               </div>
             </TabsContent>

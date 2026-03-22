@@ -256,3 +256,42 @@ create policy "monthly_attendance_update_own"
 on public.monthly_attendance_stats
 for update
 using (auth.uid() = user_id);
+
+-- Work schedules (QC-managed calendar)
+create table if not exists public.work_schedules (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  work_date date not null,
+  status text not null default 'C' check (status in ('C', 'S', 'HC', 'OFF', 'OT', 'NLB', 'HOLIDAY')),
+  updated_by uuid references public.profiles (id),
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now(),
+  unique (user_id, work_date)
+);
+
+drop trigger if exists set_work_schedules_updated_at on public.work_schedules;
+create trigger set_work_schedules_updated_at
+before update on public.work_schedules
+for each row execute procedure public.set_updated_at();
+
+alter table public.work_schedules enable row level security;
+
+create policy "work_schedules_select_own"
+on public.work_schedules
+for select
+using (auth.uid() = user_id);
+
+create policy "work_schedules_select_hr_qc"
+on public.work_schedules
+for select
+using (public.is_hr_or_mlqc());
+
+create policy "work_schedules_insert_hr_qc"
+on public.work_schedules
+for insert
+with check (public.is_hr_or_mlqc());
+
+create policy "work_schedules_update_hr_qc"
+on public.work_schedules
+for update
+using (public.is_hr_or_mlqc());
