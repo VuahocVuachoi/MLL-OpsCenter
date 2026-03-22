@@ -124,16 +124,18 @@ export function AttendanceCalendarView() {
       const end = new Date(year, month + 1, 0).toISOString().split("T")[0]
       const { data, error } = await supabase
         .from("time_sheets")
-        .select("work_date,user_name,worked_day")
+        .select("work_date,user_name,pin_id,pin_count,duration_minutes,mode,country,notes")
         .gte("work_date", start)
         .lte("work_date", end)
-        .eq("worked_day", true)
 
       if (error || !data) return
 
       const mapped: Record<string, Set<string>> = {}
       data.forEach((row) => {
-        if (!row.worked_day) return
+        const hasInput = [row.pin_id, row.pin_count, row.duration_minutes, row.mode, row.country, row.notes].some((value) =>
+          String(value ?? "").trim() !== "",
+        )
+        if (!hasInput) return
         const date = row.work_date as string
         const name = row.user_name as string
         if (!mapped[date]) mapped[date] = new Set()

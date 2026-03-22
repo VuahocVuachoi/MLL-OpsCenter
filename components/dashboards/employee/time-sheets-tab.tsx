@@ -158,14 +158,6 @@ export function TimeSheetsTab() {
   }, [])
 
   useEffect(() => {
-    if (!currentUser || typeof window === "undefined") return
-    const key = `login_started_at_${currentUser.id}`
-    if (!localStorage.getItem(key)) {
-      localStorage.setItem(key, Date.now().toString())
-    }
-  }, [currentUser])
-
-  useEffect(() => {
     const handleMouseUp = () => setDragFill(null)
     window.addEventListener("mouseup", handleMouseUp)
     return () => window.removeEventListener("mouseup", handleMouseUp)
@@ -454,15 +446,10 @@ export function TimeSheetsTab() {
     return parts.join(" ")
   }
 
-  const getSessionWorkedDay = () => {
-    if (!currentUser) return false
-    if (typeof window === "undefined") return false
-    const stored = localStorage.getItem(`login_started_at_${currentUser.id}`)
-    if (!stored) return false
-    const startedAt = Number.parseInt(stored, 10)
-    if (!Number.isFinite(startedAt)) return false
-    const hours = (Date.now() - startedAt) / (1000 * 60 * 60)
-    return hours >= 3
+  const hasWorkInput = (row: TimeSheetRow) => {
+    return [row.pinCode, row.pinQuantity, row.workTime, row.jobType, row.country, row.notes].some(
+      (value) => (value || "").trim() !== "",
+    )
   }
 
   const submit = async () => {
@@ -490,7 +477,7 @@ export function TimeSheetsTab() {
       return
     }
 
-    const workedDay = getSessionWorkedDay()
+    const workedDay = rows.some(hasWorkInput)
     const payload = rows.map((row) => ({
       user_id: currentUser.id,
       user_name: row.username || usernamePrefix,

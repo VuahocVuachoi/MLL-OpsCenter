@@ -107,7 +107,11 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
           if (!groupRows?.length) return null
         const totalPins = groupRows.reduce((sum, row) => sum + (row.pin_count || 0), 0)
         const totalTime = groupRows.reduce((sum, row) => sum + (row.duration_minutes || 0), 0)
-        const workedDay = groupRows.some((row) => row.worked_day)
+        const workedDay = groupRows.some((row) =>
+          [row.pin_id, row.pin_count, row.duration_minutes, row.mode, row.country, row.notes].some(
+            (value) => String(value ?? "").trim() !== "",
+          ),
+        )
         const safeUsername = groupRows[0].user_name || "unknown"
         return {
           date: groupRows[0].work_date,
