@@ -161,28 +161,52 @@ export function TeamScheduleCalendar() {
       const monthEnd = formatDate(daysInMonth)
       const todayStr = getTodayString()
       const rangeEnd = monthEnd > todayStr ? todayStr : monthEnd
+      const userIds = employees.map((emp) => emp.id)
+      const pageSize = 1000
 
-      const { data, error } = await supabase
-        .from("work_schedules")
-        .select("user_id,work_date,status")
-        .gte("work_date", monthStart)
-        .lte("work_date", rangeEnd)
-      if (error) return
+      const schedules: { user_id: string; work_date: string; status: string }[] = []
+      let schedulesFrom = 0
+      while (true) {
+        const { data, error } = await supabase
+          .from("work_schedules")
+          .select("user_id,work_date,status")
+          .in("user_id", userIds)
+          .gte("work_date", monthStart)
+          .lte("work_date", rangeEnd)
+          .order("work_date", { ascending: true })
+          .range(schedulesFrom, schedulesFrom + pageSize - 1)
+        if (error) return
+        if (!data || data.length === 0) break
+        schedules.push(...(data as { user_id: string; work_date: string; status: string }[]))
+        if (data.length < pageSize) break
+        schedulesFrom += pageSize
+      }
 
-      const { data: sheets, error: sheetsError } = await supabase
-        .from("time_sheets")
-        .select("user_id,work_date")
-        .gte("work_date", monthStart)
-        .lte("work_date", rangeEnd)
-      if (sheetsError) return
+      const sheets: { user_id: string; work_date: string }[] = []
+      let sheetsFrom = 0
+      while (true) {
+        const { data, error } = await supabase
+          .from("time_sheets")
+          .select("user_id,work_date")
+          .in("user_id", userIds)
+          .gte("work_date", monthStart)
+          .lte("work_date", rangeEnd)
+          .order("work_date", { ascending: true })
+          .range(sheetsFrom, sheetsFrom + pageSize - 1)
+        if (error) return
+        if (!data || data.length === 0) break
+        sheets.push(...(data as { user_id: string; work_date: string }[]))
+        if (data.length < pageSize) break
+        sheetsFrom += pageSize
+      }
 
       const byUser = new Map<string, Record<string, string>>()
-      data?.forEach((row) => {
+      schedules.forEach((row) => {
         const key = String(row.user_id)
         if (!byUser.has(key)) byUser.set(key, {})
         byUser.get(key)![row.work_date] = row.status
       })
-      sheets?.forEach((row) => {
+      sheets.forEach((row) => {
         const key = String(row.user_id)
         if (!byUser.has(key)) byUser.set(key, {})
         const existing = byUser.get(key)!
