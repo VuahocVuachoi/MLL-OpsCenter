@@ -31,13 +31,26 @@ interface DailySubmission {
   approvalDate?: string
 }
 
+const getVietnamDateString = () => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date())
+  const year = parts.find((p) => p.type === "year")?.value
+  const month = parts.find((p) => p.type === "month")?.value
+  const day = parts.find((p) => p.type === "day")?.value
+  return `${year}-${month}-${day}`
+}
+
 export function TimeSheetsTab() {
   const supabase = useMemo(() => supabaseBrowser(), [])
   const [rows, setRows] = useState<TimeSheetRow[]>([])
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [showPasteModal, setShowPasteModal] = useState(false)
   const [pasteContent, setPasteContent] = useState("")
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
+  const [selectedDate, setSelectedDate] = useState(() => getVietnamDateString())
   const [isEditing, setIsEditing] = useState(true)
   const [hasSubmitted, setHasSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState("")
@@ -45,6 +58,8 @@ export function TimeSheetsTab() {
   const [submissionStatus, setSubmissionStatus] = useState<DailySubmission["status"] | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [dailySubmissions, setDailySubmissions] = useState<DailySubmission[]>([])
+  const [historyDateFilter, setHistoryDateFilter] = useState("")
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [isLoadingRows, setIsLoadingRows] = useState(false)
   const [dragFill, setDragFill] = useState<{ field: keyof TimeSheetRow; value: string } | null>(null)
   const [rejectNotice, setRejectNotice] = useState("")
@@ -262,16 +277,63 @@ export function TimeSheetsTab() {
   useEffect(() => {
     const loadHistory = async () => {
       if (!currentUser) return
-      const { data, error } = await supabase
-        .from("time_sheets")
-        .select("work_date,status,approved_at,pin_count,duration_minutes")
-        .eq("user_id", currentUser.id)
-        .order("work_date", { ascending: false })
-        .limit(30)
-      if (error || !data) return
-      const seen = new Set<string>()
-      const grouped: Record<string, typeof data> = {}
-      for (const row of data) {
+      setIsLoadingHistory(true)
+      const pageSize = 1000
+      let from = 0
+      const allRows: {
+        work_date: string
+        status: string
+        approved_at: string | null
+        pin_count: number | null
+        duration_minutes: number | null
+        pin_id: string | null
+        mode: string | null
+        country: string | null
+        notes: string | null
+      }[] = []
+
+      while (true) {
+        const { data, error } = await supabase
+          .from("time_sheets")
+          .select("work_date,status,approved_at,pin_count,duration_minutes,pin_id,mode,country,notes")
+          .eq("user_id", currentUser.id)
+          .order("work_date", { ascending: false })
+          .range(from, from + pageSize - 1)
+
+        if (error) {
+          setIsLoadingHistory(false)
+          return
+        }
+        if (!data || data.length === 0) break
+
+        allRows.push(
+          ...(data as {
+            work_date: string
+            status: string
+            approved_at: string | null
+            pin_count: number | null
+            duration_minutes: number | null
+            pin_id: string | null
+            mode: string | null
+            country: string | null
+            notes: string | null
+          }[]),
+        )
+        if (data.length < pageSize) break
+        from += pageSize
+      }
+
+      const grouped: Record<string, typeof allRows> = {}
+      for (const row of allRows) {
+        const hasInput =
+          (row.pin_id || "").trim() !== "" ||
+          (row.mode || "").trim() !== "" ||
+          (row.country || "").trim() !== "" ||
+          (row.notes || "").trim() !== "" ||
+          (row.pin_count ?? 0) > 0 ||
+          (row.duration_minutes ?? 0) > 0
+        if (!hasInput) continue
+
         const date = row.work_date as string
         if (!grouped[date]) grouped[date] = []
         grouped[date].push(row)
@@ -292,6 +354,7 @@ export function TimeSheetsTab() {
 
       mapped.sort((a, b) => (a.date < b.date ? 1 : -1))
       setDailySubmissions(mapped)
+      setIsLoadingHistory(false)
     }
     if (showEditModal) {
       void loadHistory()
@@ -518,7 +581,7 @@ export function TimeSheetsTab() {
   }
 
   const handleBackToToday = () => {
-    const today = new Date().toISOString().split("T")[0]
+    const today = getVietnamDateString()
     setSelectedDate(today)
     setSubmissionStatus(null)
     setHasSubmitted(false)
@@ -536,6 +599,10 @@ export function TimeSheetsTab() {
       },
     ])
   }
+
+  const filteredHistory = historyDateFilter
+    ? dailySubmissions.filter((submission) => submission.date === historyDateFilter)
+    : dailySubmissions
 
   return (
     <div className="space-y-6">
@@ -562,7 +629,10 @@ export function TimeSheetsTab() {
                 Paste from Sheets
               </button>
               <button
-                onClick={() => setShowEditModal(true)}
+                onClick={() => {
+                  setHistoryDateFilter("")
+                  setShowEditModal(true)
+                }}
                 className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-lg font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Calendar className="w-4 h-4" />
@@ -916,8 +986,40 @@ export function TimeSheetsTab() {
               </div>
             </div>
 
+            <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="min-w-56">
+                  <label className="block text-sm font-semibold text-slate-800 mb-2">Find by date</label>
+                  <Input
+                    type="date"
+                    value={historyDateFilter}
+                    onChange={(e) => setHistoryDateFilter(e.target.value)}
+                    className="bg-white border-slate-300 text-slate-900"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setHistoryDateFilter(getVietnamDateString())}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHistoryDateFilter("")}
+                  className="px-4 py-2 border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 rounded-lg font-medium transition-colors"
+                >
+                  Clear filter
+                </button>
+              </div>
+            </div>
+
             <div className="space-y-4">
-              {dailySubmissions.map((submission) => (
+              {isLoadingHistory && <p className="text-sm text-slate-500">Loading history...</p>}
+              {!isLoadingHistory && filteredHistory.length === 0 && (
+                <p className="text-sm text-slate-500">No submitted timesheet found for selected filter.</p>
+              )}
+              {filteredHistory.map((submission) => (
                 <motion.div
                   key={submission.date}
                   initial={{ opacity: 0, y: 10 }}

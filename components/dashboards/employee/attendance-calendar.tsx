@@ -122,8 +122,8 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
       if (!currentUser) return
       const year = currentMonth.getFullYear()
       const month = currentMonth.getMonth()
-      const monthStart = new Date(year, month, 1).toISOString().split("T")[0]
-      const monthEnd = new Date(year, month + 1, 0).toISOString().split("T")[0]
+      const monthStart = getDateString(new Date(year, month, 1))
+      const monthEnd = getDateString(new Date(year, month + 1, 0))
       const { data, error } = await supabase
         .from("time_sheets")
         .select("work_date")
@@ -145,8 +145,8 @@ export function AttendanceCalendar({ employeeName = "You" }: AttendanceCalendarP
       if (!currentUser) return
       const year = currentMonth.getFullYear()
       const month = currentMonth.getMonth()
-      const monthStart = new Date(year, month, 1).toISOString().split("T")[0]
-      const monthEnd = new Date(year, month + 1, 0).toISOString().split("T")[0]
+      const monthStart = getDateString(new Date(year, month, 1))
+      const monthEnd = getDateString(new Date(year, month + 1, 0))
       const { data, error } = await supabase
         .from("work_schedules")
         .select("work_date,status")
