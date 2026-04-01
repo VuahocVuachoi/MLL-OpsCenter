@@ -236,7 +236,7 @@ export function TeamScheduleCalendar() {
           >
             <ChevronLeft className="w-5 h-5 text-slate-700" />
           </button>
-          <h2 className="text-2xl font-bold text-slate-900 min-w-56 text-center capitalize">{monthYear}</h2>
+          <h2 className="text-2xl font-bold text-white min-w-56 text-center capitalize">{monthYear}</h2>
           <button
             onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
             className="p-2 hover:bg-slate-200 rounded-lg transition-colors"

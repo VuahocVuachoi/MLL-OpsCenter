@@ -31,6 +31,8 @@ interface DailySubmission {
   approvalDate?: string
 }
 
+const LABEL_JOB_TYPE = "Label"
+
 const getVietnamDateString = () => {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Ho_Chi_Minh",
@@ -70,6 +72,7 @@ export function TimeSheetsTab() {
 
   const totalPins = useMemo(() => rows.reduce((sum, row) => sum + (Number(row.pinQuantity) || 0), 0), [rows])
   const totalMinutes = useMemo(() => rows.reduce((sum, row) => sum + (Number(row.workTime) || 0), 0), [rows])
+  const isLabelRow = (row: TimeSheetRow) => row.jobType === LABEL_JOB_TYPE
 
   const usernamePrefix = useMemo(() => {
     if (!currentUser) return ""
@@ -391,7 +394,7 @@ export function TimeSheetsTab() {
       id: `${date}-${idx}`,
       username: row.user_name || usernamePrefix,
       pinCode: row.pin_id || "",
-      pinQuantity: row.pin_count?.toString() || "",
+      pinQuantity: row.mode === LABEL_JOB_TYPE ? "1" : row.pin_count?.toString() || "",
       workTime: row.duration_minutes?.toString() || "",
       jobType: row.mode || "",
       country: row.country || "",
@@ -427,6 +430,9 @@ export function TimeSheetsTab() {
       rows.map((row) => {
         if (row.id !== id) return row
         const next = { ...row, [field]: value }
+        if (field === "jobType" && value === LABEL_JOB_TYPE) {
+          next.pinQuantity = "1"
+        }
         if (field === "pinCode") {
           const hasSinglePin = value.trim() !== "" && !value.includes("-")
           const hasQuantity = (next.pinQuantity || "").trim() !== ""
@@ -549,7 +555,7 @@ export function TimeSheetsTab() {
       approved: false,
       status: "pending",
       worked_day: workedDay,
-      pin_count: Number.parseInt(row.pinQuantity || "0", 10) || 0,
+      pin_count: row.jobType === LABEL_JOB_TYPE ? 1 : Number.parseInt(row.pinQuantity || "0", 10) || 0,
       notes: row.notes || "",
     }))
 
@@ -758,9 +764,9 @@ export function TimeSheetsTab() {
                     </td>
                     <td className="px-3 py-3">
                       <Input
-                        value={row.pinQuantity}
+                        value={isLabelRow(row) ? "1" : row.pinQuantity}
                         onChange={(e) => updateRow(row.id, "pinQuantity", sanitizeInt(e.target.value))}
-                        disabled={!isEditing}
+                        disabled={!isEditing || isLabelRow(row)}
                         placeholder="Qty"
                         type="number"
                         inputMode="numeric"
