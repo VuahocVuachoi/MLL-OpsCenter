@@ -1,19 +1,73 @@
 import { google } from "googleapis"
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib"
+import { PDFDocument, StandardFonts } from "pdf-lib"
 import { Buffer } from "node:buffer"
 import { Readable } from "stream"
+import { readFile } from "node:fs/promises"
+import { supabaseAdmin } from "@/lib/supabase-admin"
 
 const DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive"]
 
-const getServiceAccountAuth = () => {
-  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
-  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, "\n")
+export const runtime = "nodejs"
 
-  if (!clientEmail || !privateKey) {
+const loadServiceAccountFromJsonPath = async () => {
+  const jsonPath = process.env.GOOGLE_SERVICE_ACCOUNT_JSON_PATH
+  if (!jsonPath) return null
+
+  const fileContent = await readFile(jsonPath, "utf-8")
+  const parsed = JSON.parse(fileContent) as { client_email?: string; private_key?: string }
+  if (!parsed.client_email || !parsed.private_key) return null
+  return {
+    clientEmail: parsed.client_email,
+    privateKey: parsed.private_key,
+  }
+}
+
+const getOAuthUserAuth = async () => {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN
+  const accessToken = process.env.GOOGLE_OAUTH_ACCESS_TOKEN
+
+  if (!clientId?.trim() || !clientSecret?.trim()) return null
+  if (!refreshToken?.trim() && !accessToken?.trim()) return null
+
+  const oauth2 = new google.auth.OAuth2(clientId, clientSecret)
+  oauth2.setCredentials({
+    refresh_token: refreshToken || undefined,
+    access_token: accessToken || undefined,
+  })
+
+  // Ensure token is available/refreshed before Drive calls.
+  await oauth2.getAccessToken()
+  return oauth2
+}
+
+const getServiceAccountAuth = async () => {
+  const fileAccount = await loadServiceAccountFromJsonPath()
+  const clientEmail = fileAccount?.clientEmail || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
+  const privateKey =
+    fileAccount?.privateKey || process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, "\n")
+
+  if (!clientEmail?.trim() || !privateKey?.trim()) {
     throw new Error("Missing Google service account credentials.")
   }
 
-  return new google.auth.JWT(clientEmail, undefined, privateKey, DRIVE_SCOPES)
+  const auth = new google.auth.GoogleAuth({
+    credentials: {
+      client_email: clientEmail,
+      private_key: privateKey,
+    },
+    scopes: DRIVE_SCOPES,
+  })
+
+  const client = await auth.getClient()
+  return client
+}
+
+const getDriveAuthClient = async () => {
+  const oauthAuth = await getOAuthUserAuth()
+  if (oauthAuth) return oauthAuth
+  return getServiceAccountAuth()
 }
 
 const formatDate = (value: string) => {
@@ -35,10 +89,50 @@ const dataUrlToBytes = (dataUrl: string) => {
   return Buffer.from(base64, "base64")
 }
 
+const getVietnamDateFolderName = () =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
+
+const getOrCreateDatedFolder = async (parentFolderId: string, drive: ReturnType<typeof google.drive>, folderName: string) => {
+  const safeFolderName = folderName.replace(/'/g, "\\'")
+  const existing = await drive.files.list({
+    q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false and name='${safeFolderName}'`,
+    fields: "files(id,name)",
+    pageSize: 1,
+    includeItemsFromAllDrives: true,
+    supportsAllDrives: true,
+  })
+
+  const existingId = existing.data.files?.[0]?.id
+  if (existingId) return existingId
+
+  const created = await drive.files.create({
+    requestBody: {
+      name: folderName,
+      mimeType: "application/vnd.google-apps.folder",
+      parents: [parentFolderId],
+    },
+    fields: "id",
+    supportsAllDrives: true,
+  })
+
+  if (!created.data.id) {
+    throw new Error("Unable to create date folder on Google Drive.")
+  }
+
+  return created.data.id
+}
+
 export async function POST(request: Request) {
   try {
+    const admin = supabaseAdmin()
     const payload = await request.json()
     const {
+      userId,
       employeeName,
       position,
       leaveType,
@@ -49,11 +143,30 @@ export async function POST(request: Request) {
       signatureData,
     } = payload || {}
 
-    if (!employeeName || !fromDate || !toDate || !reason || !signatureData) {
+    if (!userId || !employeeName || !fromDate || !toDate || !reason || !signatureData) {
       return Response.json({ error: "Missing required information." }, { status: 400 })
     }
 
-    const auth = getServiceAccountAuth()
+    if (new Date(fromDate).getTime() > new Date(toDate).getTime()) {
+      return Response.json({ error: "From Date must be earlier than To Date." }, { status: 400 })
+    }
+
+    const numberOfDays = diffDaysInclusive(fromDate, toDate)
+    const { data: profile, error: profileError } = await admin
+      .from("profiles")
+      .select("id,annual_leave_total,annual_leave_remaining")
+      .eq("id", userId)
+      .single()
+
+    if (profileError || !profile) {
+      return Response.json({ error: "Employee profile not found." }, { status: 400 })
+    }
+
+    if (leaveType === "annual" && numberOfDays > (profile.annual_leave_remaining ?? 0)) {
+      return Response.json({ error: "Requested days exceed remaining annual leave." }, { status: 400 })
+    }
+
+    const auth = await getDriveAuthClient()
     const drive = google.drive({ version: "v3", auth })
 
     const pdfDoc = await PDFDocument.create()
@@ -71,8 +184,6 @@ export async function POST(request: Request) {
     const startY = 620
     const lineHeight = 20
     const leaveTypeLabel = leaveType === "compensatory" ? "Compensatory Leave Application" : "Annual Leave Application"
-    const numberOfDays = diffDaysInclusive(fromDate, toDate)
-
     const lines = [
       `Name: ${employeeName}`,
       `Position: ${position || "MLL"}`,
@@ -111,24 +222,54 @@ export async function POST(request: Request) {
       return Response.json({ error: "Google Drive folder configuration is missing." }, { status: 500 })
     }
 
+    const datedFolderName = getVietnamDateFolderName()
+    const datedFolderId = await getOrCreateDatedFolder(folderId, drive, datedFolderName)
+
     const driveResponse = await drive.files.create({
       requestBody: {
         name: fileName,
-        parents: [folderId],
+        parents: [datedFolderId],
       },
       media: {
         mimeType: "application/pdf",
         body: Readable.from(Buffer.from(pdfBytes)),
       },
       fields: "id, webViewLink",
+      supportsAllDrives: true,
     })
 
     const fileId = driveResponse.data.id
     const fileUrl = driveResponse.data.webViewLink || (fileId ? `https://drive.google.com/file/d/${fileId}/view` : "")
 
-    return Response.json({ ok: true, fileUrl })
+    const { data: leaveRequest, error: insertError } = await admin
+      .from("leave_requests")
+      .insert({
+        user_id: userId,
+        start_date: fromDate,
+        end_date: toDate,
+        total_days: numberOfDays,
+        reason: reason.trim(),
+        status: "pending",
+      })
+      .select("id,status,total_days,start_date,end_date")
+      .single()
+
+    if (insertError) {
+      return Response.json({ error: insertError.message || "Unable to save leave request." }, { status: 500 })
+    }
+
+    return Response.json({ ok: true, fileUrl, leaveRequest })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unexpected error"
+    const rawMessage = error instanceof Error ? error.message : "Unexpected error"
+    const text = String(rawMessage || "")
+    const looksLikeUnregisteredCaller =
+      /unregistered callers|without established identity|API consumer identity/i.test(text)
+    const looksLikeServiceQuota = /Service Accounts do not have storage quota/i.test(text)
+    const message = looksLikeUnregisteredCaller
+      ? "Google Drive authentication failed. Please set GOOGLE_SERVICE_ACCOUNT_JSON_PATH to your service-account JSON file, enable Drive API in that GCP project, and share the target Drive folder with the service account email."
+      : looksLikeServiceQuota
+        ? "Google Drive rejected service-account upload quota. Configure OAuth user credentials (GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, GOOGLE_OAUTH_REFRESH_TOKEN) to upload to My Drive."
+        : rawMessage
     return Response.json({ error: message }, { status: 500 })
   }
 }

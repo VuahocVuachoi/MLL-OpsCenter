@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import { Card } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { supabaseBrowser } from "@/lib/supabase-browser"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface Employee {
   id: string
@@ -32,6 +33,7 @@ export function TeamScheduleCalendar() {
   const [loadError, setLoadError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [applyStatus, setApplyStatus] = useState<string>("OFF")
   const employeeIds = useMemo(() => employees.map((emp) => emp.id).join(","), [employees])
 
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate()
@@ -50,19 +52,6 @@ export function TeamScheduleCalendar() {
       month: "2-digit",
       day: "2-digit",
     }).formatToParts(date)
-    const year = parts.find((p) => p.type === "year")?.value
-    const month = parts.find((p) => p.type === "month")?.value
-    const dayPart = parts.find((p) => p.type === "day")?.value
-    return `${year}-${month}-${dayPart}`
-  }
-
-  const getTodayString = () => {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Ho_Chi_Minh",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(new Date())
     const year = parts.find((p) => p.type === "year")?.value
     const month = parts.find((p) => p.type === "month")?.value
     const dayPart = parts.find((p) => p.type === "day")?.value
@@ -105,10 +94,8 @@ export function TeamScheduleCalendar() {
     }
   }
 
-  const handleStatusClick = (employeeId: string, day: number, currentStatus: string | null) => {
-    const nextStatus = currentStatus
-      ? STATUS_ORDER[(STATUS_ORDER.indexOf(currentStatus) + 1) % STATUS_ORDER.length]
-      : STATUS_ORDER[0]
+  const handleStatusClick = (employeeId: string, day: number) => {
+    const nextStatus = STATUS_ORDER.includes(applyStatus) ? applyStatus : "OFF"
     updateEmployeeSchedule(employeeId, day, nextStatus)
     void persistSchedule(employeeId, day, nextStatus)
   }
@@ -159,8 +146,7 @@ export function TeamScheduleCalendar() {
       const month = currentMonth.getMonth()
       const monthStart = formatDate(1)
       const monthEnd = formatDate(daysInMonth)
-      const todayStr = getTodayString()
-      const rangeEnd = monthEnd > todayStr ? todayStr : monthEnd
+      const rangeEnd = monthEnd
       const userIds = employees.map((emp) => emp.id)
       const pageSize = 1000
 
@@ -244,6 +230,21 @@ export function TeamScheduleCalendar() {
             <ChevronRight className="w-5 h-5 text-slate-700" />
           </button>
         </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-slate-200">Click day to set:</span>
+          <Select value={applyStatus} onValueChange={setApplyStatus}>
+            <SelectTrigger className="w-44 bg-white border-slate-300 text-slate-900">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_ORDER.map((statusKey) => (
+                <SelectItem key={statusKey} value={statusKey}>
+                  {SCHEDULE_STATUS[statusKey as keyof typeof SCHEDULE_STATUS].label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Legend */}
@@ -256,6 +257,9 @@ export function TeamScheduleCalendar() {
             </div>
           ))}
         </div>
+        <p className="text-xs text-slate-500 mt-3">
+          Tip: Choose <strong>Off</strong> then click the date cell to mark MLL off.
+        </p>
       </Card>
 
       {/* Employees Schedule Grid */}
@@ -319,7 +323,7 @@ export function TeamScheduleCalendar() {
                         <motion.div
                           key={day}
                           whileHover={{ scale: 1.05 }}
-                          onClick={() => handleStatusClick(employee.id, day, status)}
+                          onClick={() => handleStatusClick(employee.id, day)}
                           className={`relative p-2 rounded-lg border-2 min-h-16 flex flex-col items-center justify-center cursor-pointer transition-all ${
                             isWknd ? "bg-slate-50 border-slate-200" : "bg-white border-slate-200 hover:border-blue-400"
                           } ${status ? "border-blue-400 bg-blue-50" : ""}`}

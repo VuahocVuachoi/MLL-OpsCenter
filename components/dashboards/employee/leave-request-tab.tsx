@@ -23,6 +23,9 @@ export function LeaveRequestTab() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitMessage, setSubmitMessage] = useState("")
   const [errorMessage, setErrorMessage] = useState("")
+  const [annualTotal, setAnnualTotal] = useState(12)
+  const [annualRemaining, setAnnualRemaining] = useState(12)
+  const [pendingLeaveDays, setPendingLeaveDays] = useState(0)
 
   useEffect(() => {
     const userData = localStorage.getItem("user")
@@ -41,6 +44,44 @@ export function LeaveRequestTab() {
     }
     void loadSignature()
   }, [currentUser?.id, supabase])
+
+  useEffect(() => {
+    const loadBalances = async () => {
+      if (!currentUser?.id) return
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("annual_leave_total,annual_leave_remaining")
+        .eq("id", currentUser.id)
+        .single()
+
+      if (profile) {
+        setAnnualTotal(profile.annual_leave_total ?? 12)
+        setAnnualRemaining(profile.annual_leave_remaining ?? 12)
+      }
+
+      const { data: leaveRows } = await supabase
+        .from("leave_requests")
+        .select("total_days,status")
+        .eq("user_id", currentUser.id)
+
+      const pendingDays = (leaveRows || [])
+        .filter((row) => row.status === "pending")
+        .reduce((sum, row) => sum + (row.total_days || 0), 0)
+      setPendingLeaveDays(pendingDays)
+    }
+
+    void loadBalances()
+  }, [currentUser?.id, supabase])
+
+  const requestedDays = useMemo(() => {
+    if (!fromDate || !toDate) return 0
+    const start = new Date(fromDate)
+    const end = new Date(toDate)
+    const ms = end.getTime() - start.getTime()
+    const days = Math.floor(ms / (1000 * 60 * 60 * 24)) + 1
+    return Number.isFinite(days) ? Math.max(days, 0) : 0
+  }, [fromDate, toDate])
 
   const handleSignatureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -74,8 +115,16 @@ export function LeaveRequestTab() {
       setErrorMessage("Please fill in From Date, To Date, and Reason.")
       return
     }
+    if (new Date(fromDate).getTime() > new Date(toDate).getTime()) {
+      setErrorMessage("From Date must be earlier than To Date.")
+      return
+    }
     if (!signatureData) {
       setErrorMessage("Please upload your signature before submitting.")
+      return
+    }
+    if (leaveType === "annual" && requestedDays > annualRemaining) {
+      setErrorMessage(`You only have ${annualRemaining} annual leave day(s) remaining.`)
       return
     }
     setIsSubmitting(true)
@@ -83,6 +132,7 @@ export function LeaveRequestTab() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        userId: currentUser.id,
         leaveType,
         fromDate,
         toDate,
@@ -100,6 +150,11 @@ export function LeaveRequestTab() {
       return
     }
     setSubmitMessage("Leave request created and uploaded to Drive.")
+    setPendingLeaveDays((prev) => prev + requestedDays)
+    setFromDate("")
+    setToDate("")
+    setReason("")
+    setContactPhone("")
     setIsSubmitting(false)
   }
 
@@ -113,19 +168,31 @@ export function LeaveRequestTab() {
             <div>
               <div className="flex justify-between mb-2">
                 <span className="text-sm text-gray-400">Annual Leave</span>
-                <span className="text-sm font-semibold text-cyan-300">18/25</span>
+                <span className="text-sm font-semibold text-cyan-300">
+                  {annualRemaining}/{annualTotal}
+                </span>
               </div>
               <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
-                <div className="bg-gradient-to-r from-cyan-400 to-blue-500 h-full" style={{ width: "72%" }} />
+                <div
+                  className="bg-gradient-to-r from-cyan-400 to-blue-500 h-full"
+                  style={{
+                    width: `${annualTotal > 0 ? Math.max(0, Math.min(100, (annualRemaining / annualTotal) * 100)) : 0}%`,
+                  }}
+                />
               </div>
             </div>
             <div>
               <div className="flex justify-between mb-2">
-                <span className="text-sm text-gray-400">Extra Leave</span>
-                <span className="text-sm font-semibold text-green-300">5/10</span>
+                <span className="text-sm text-gray-400">Pending Requests</span>
+                <span className="text-sm font-semibold text-amber-300">{pendingLeaveDays} day(s)</span>
               </div>
               <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
-                <div className="bg-gradient-to-r from-green-400 to-emerald-500 h-full" style={{ width: "50%" }} />
+                <div
+                  className="bg-gradient-to-r from-amber-400 to-orange-500 h-full"
+                  style={{
+                    width: `${annualTotal > 0 ? Math.max(0, Math.min(100, (pendingLeaveDays / annualTotal) * 100)) : 0}%`,
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -164,6 +231,11 @@ export function LeaveRequestTab() {
                 <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="bg-white/5 border-white/10 text-white" />
               </div>
             </div>
+            {requestedDays > 0 && (
+              <p className="text-xs text-cyan-300">
+                Requested duration: {requestedDays} day(s)
+              </p>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Contact Phone</label>
               <Input

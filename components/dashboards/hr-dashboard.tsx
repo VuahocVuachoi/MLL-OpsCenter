@@ -12,6 +12,7 @@ import { Search, Bell, Settings } from "lucide-react"
 import { TargetAssignment } from "./hr/target-assignment"
 import { WorkAnalytics } from "@/components/dashboards/qc/work-analytics"
 import { AttendanceCalendarView } from "./qc/attendance-calendar-view" // use interactive calendar view instead of static calendar
+import { LeaveApprovalsTab } from "./hr/leave-approvals-tab"
 
 interface HRDashboardProps {
   user: User
@@ -106,7 +107,7 @@ export function HRDashboard({ user }: HRDashboardProps) {
           transition={{ duration: 0.6, delay: 0.1 }}
         >
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border border-border rounded-xl p-1 mb-8">
+            <TabsList className="grid w-full grid-cols-6 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border border-border rounded-xl p-1 mb-8">
               <TabsTrigger
                 value="overview"
                 className="rounded-lg font-semibold text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-pink-500 data-[state=active]:text-white"
@@ -136,6 +137,12 @@ export function HRDashboard({ user }: HRDashboardProps) {
                 className="rounded-lg font-semibold text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
               >
                 Directory
+              </TabsTrigger>
+              <TabsTrigger
+                value="leave-approvals"
+                className="rounded-lg font-semibold text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white"
+              >
+                Leave Approvals
               </TabsTrigger>
             </TabsList>
 
@@ -189,6 +196,10 @@ export function HRDashboard({ user }: HRDashboardProps) {
                   </Card>
                 ))}
               </div>
+            </TabsContent>
+
+            <TabsContent value="leave-approvals" className="mt-0">
+              <LeaveApprovalsTab user={user} />
             </TabsContent>
           </Tabs>
         </motion.div>
