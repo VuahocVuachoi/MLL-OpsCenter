@@ -32,7 +32,7 @@ interface UserDaySubmission {
 }
 
 interface MonthlyTeamDataProps {
-  onSummaryChange?: (summary: { activeToday: number; totalPins: number; avgPerformance: number }) => void
+  onSummaryChange?: (summary: { totalMembers: number; activeToday: number; totalPins: number; avgPerformance: number }) => void
 }
 
 export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
@@ -138,13 +138,13 @@ export function MonthlyTeamData({ onSummaryChange }: MonthlyTeamDataProps) {
 
   useEffect(() => {
     if (!onSummaryChange) return
+    const totalMembers = submissions.length
     const activeToday = submissions.filter((submission) => submission.workedDay).length
     const totalPins = submissions.reduce((sum, submission) => sum + submission.totalPins, 0)
-    const avgHours =
-      submissions.length > 0
-        ? Number((submissions.reduce((sum, submission) => sum + submission.averageHours, 0) / submissions.length).toFixed(1))
-        : 0
+    const totalMinutes = submissions.reduce((sum, submission) => sum + submission.totalTime, 0)
+    const avgHours = totalPins > 0 ? Number((totalMinutes / totalPins / 60).toFixed(1)) : 0
     onSummaryChange({
+      totalMembers,
       activeToday,
       totalPins,
       avgPerformance: avgHours,

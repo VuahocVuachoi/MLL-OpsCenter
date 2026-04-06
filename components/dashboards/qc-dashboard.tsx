@@ -21,6 +21,12 @@ export function QCDashboard({ user }: QCDashboardProps) {
   const router = useRouter()
   const [team, setTeam] = useState("all")
   const [activeTab, setActiveTab] = useState("attendance-calendar")
+  const [kpiSummary, setKpiSummary] = useState({
+    totalMembers: 0,
+    activeToday: 0,
+    totalPins: 0,
+    avgPerformance: 0,
+  })
 
   const handleLinkClick = (link: string) => {
     if (link === "Settings") {
@@ -57,19 +63,19 @@ export function QCDashboard({ user }: QCDashboardProps) {
             <div className="grid md:grid-cols-4 gap-4">
               <div className="bg-gradient-to-br from-primary/20 to-pink-500/20 border border-primary/30 rounded-xl p-4">
                 <p className="text-xs text-muted-foreground mb-1">Total Team Members</p>
-                <p className="text-2xl font-bold text-primary">24</p>
+                <p className="text-2xl font-bold text-primary">{kpiSummary.totalMembers}</p>
               </div>
               <div className="bg-gradient-to-br from-secondary/20 to-cyan-400/20 border border-secondary/30 rounded-xl p-4">
                 <p className="text-xs text-muted-foreground mb-1">Active Today</p>
-                <p className="text-2xl font-bold text-secondary">18</p>
+                <p className="text-2xl font-bold text-secondary">{kpiSummary.activeToday}</p>
               </div>
               <div className="bg-gradient-to-br from-accent/20 to-lime-400/20 border border-accent/30 rounded-xl p-4">
                 <p className="text-xs text-muted-foreground mb-1">Total Pins Today</p>
-                <p className="text-2xl font-bold text-accent">1,248</p>
+                <p className="text-2xl font-bold text-accent">{kpiSummary.totalPins.toLocaleString("en-US")}</p>
               </div>
               <div className="bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 rounded-xl p-4">
-                <p className="text-xs text-muted-foreground mb-1">Avg Performance</p>
-                <p className="text-2xl font-bold text-violet-400">94%</p>
+                <p className="text-xs text-muted-foreground mb-1">Avg Performance (Hours/Pin)</p>
+                <p className="text-2xl font-bold text-violet-400">{kpiSummary.avgPerformance}</p>
               </div>
             </div>
           </Card>
@@ -130,7 +136,7 @@ export function QCDashboard({ user }: QCDashboardProps) {
             </TabsContent>
 
             <TabsContent value="team-output" className="mt-0">
-              <MonthlyTeamData />
+              <MonthlyTeamData onSummaryChange={setKpiSummary} />
             </TabsContent>
 
             <TabsContent value="attendance" className="mt-0">
